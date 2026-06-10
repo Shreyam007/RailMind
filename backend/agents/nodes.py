@@ -2,7 +2,7 @@ import os
 import json
 import logging
 from dotenv import load_dotenv
-from typing import Dict, Any, List
+from typing import List
 from uuid import uuid4
 from datetime import datetime
 from ..services.ai_service import reason_with_ai
