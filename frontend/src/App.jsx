@@ -266,6 +266,15 @@ function MainApp() {
     }
   };
 
+  const triggerHeroScenario = async () => {
+    try {
+      console.log("Triggering Hero Scenario...");
+      await fetch(`${API_BASE}/api/simulate-hero`, { method: 'POST' });
+    } catch (err) {
+      console.error("Failed to trigger hero scenario:", err);
+    }
+  };
+
   // Views Render Functions
   const IncidentFeedView = () => {
     const [filter, setFilter] = useState('ALL');
@@ -895,6 +904,69 @@ function MainApp() {
     );
   };
 
+  const AgentFeedPanel = () => {
+    const logEndRef = useRef(null);
+
+    useEffect(() => {
+      if (logEndRef.current) {
+        logEndRef.current.scrollIntoView({ behavior: 'smooth' });
+      }
+    }, [logs]);
+
+    return (
+      <div style={{
+        height: '250px',
+        backgroundColor: '#05070a',
+        borderTop: '1px solid #1a1e26',
+        display: 'flex',
+        flexDirection: 'column',
+        padding: '12px'
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+          <h3 style={{ fontSize: '13px', fontWeight: 600, color: '#34d399', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <Activity size={14} /> Agent Autonomous Activity Stream
+          </h3>
+          <button 
+            onClick={triggerHeroScenario}
+            style={{ 
+              backgroundColor: 'transparent', border: '1px dashed #ef4444', 
+              color: '#ef4444', fontSize: '10px', padding: '2px 6px', 
+              borderRadius: '4px', cursor: 'pointer', opacity: 0.3 
+            }}
+            title="Simulate Major Incident"
+          >
+            🚨
+          </button>
+        </div>
+        <div style={{
+          flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '6px',
+          fontFamily: 'monospace', fontSize: '12px', color: '#cbd5e1'
+        }}>
+          {logs.length === 0 ? (
+            <div style={{ color: '#64748b', fontStyle: 'italic' }}>Awaiting autonomous activity...</div>
+          ) : (
+            logs.map((log, idx) => {
+              const isAction = log.message.includes("→");
+              return (
+                <div key={idx} style={{ 
+                  display: 'flex', gap: '8px', 
+                  backgroundColor: isAction ? 'rgba(52, 211, 153, 0.05)' : 'transparent',
+                  padding: isAction ? '4px 6px' : '2px',
+                  borderRadius: '4px',
+                  borderLeft: isAction ? '2px solid #34d399' : 'none'
+                }}>
+                  <span style={{ color: '#64748b', minWidth: '65px' }}>{log.message.substring(1, 9)}</span>
+                  <span style={{ color: '#e2e8f0' }}>{log.message.substring(11)}</span>
+                </div>
+              );
+            })
+          )}
+          <div ref={logEndRef}></div>
+        </div>
+      </div>
+    );
+  };
+
   const renderContent = () => {
     switch (activeTab) {
       case 'Dashboard':
@@ -907,8 +979,11 @@ function MainApp() {
               borderRight: '1px solid #1a1e26',
               backgroundColor: '#0b0d10'
             }}>
-              <div style={{ flex: 1, position: 'relative' }}>
-                <LiveMap trains={trains} />
+              <div style={{ flex: 1, position: 'relative', display: 'flex', flexDirection: 'column' }}>
+                <div style={{ flex: 1, position: 'relative' }}>
+                  <LiveMap trains={trains} />
+                </div>
+                <AgentFeedPanel />
               </div>
               <TaskBoard tasks={tasks} onResolve={handleResolve} />
             </div>

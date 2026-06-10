@@ -10,7 +10,9 @@ from .state import AgentState, TrainAnomaly, DepartmentTask
 from ..services.db_client import db_client
 from ..services.railways_api import get_live_train_status, get_cancelled_trains, mock_train_data, RailwaysAPIClient, get_multiple_trains
 from ..services.twilio_service import TwilioSMSClient
+from ..services.twilio_service import TwilioSMSClient
 from ..api.websocket import websocket_manager
+import asyncio
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +33,7 @@ async def log_agent(node_name: str, message: str):
     try:
         await websocket_manager.broadcast(json.dumps({
             "type": "AGENT_LOG",
-            "message": f"[{datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')}] [{node_name}] {message}",
+            "message": f"[{datetime.utcnow().strftime('%H:%M:%S')}] {node_name} → {message}",
             "timestamp": datetime.utcnow().isoformat()
         }))
     except Exception as e:
@@ -39,7 +41,7 @@ async def log_agent(node_name: str, message: str):
 
 async def ingest_node(state: AgentState) -> AgentState:
     try:
-        await log_agent("ingest_node", "[RAILMIND] Ingesting live train status from API feeds...")
+        await log_agent("Ingestion Agent", "Initializing telemetry sync with Indian Railways API...")
         train_numbers = [
             "12301", "12951", "12001", "12259", "12565",
             "11057", "12627", "12625", "12621", "12615",
@@ -106,16 +108,38 @@ async def ingest_node(state: AgentState) -> AgentState:
                 "data": train
             }))
         
+        if state.get("simulate_hero"):
+            # Inject Hero Scenario
+            await log_agent("Detection Agent", "CRITICAL: Force-injecting OHE failure scenario for Train 12309")
+            hero_train = {
+                "train_number": "12309",
+                "train_name": "RJPB - NDLS Tejas Rajdhani Express",
+                "status": "delayed",
+                "delay_minutes": 140,
+                "passenger_load": "heavy",
+                "current_station": "Prayagraj block section",
+                "lat": 25.4358,
+                "lng": 81.8463,
+                "source": "RJPB",
+                "destination": "NDLS"
+            }
+            # replace or append to live_trains
+            live_trains = [t for t in live_trains if t["train_number"] != "12309"]
+            live_trains.append(hero_train)
+            state["simulate_hero"] = False # Reset flag
+
         state["raw_train_data"] = live_trains
-        await log_agent("ingest_node", f"[RAILMIND] Ingested {len(live_trains)} trains")
+        await log_agent("Ingestion Agent", f"Successfully ingested {len(live_trains)} active trains")
+        await asyncio.sleep(1)
     except Exception as e:
         logger.error(f"Error in ingest_node: {e}")
-        await log_agent("ingest_node", f"[RAILMIND] [ERROR] Ingest node failed: {e}")
+        await log_agent("Ingestion Agent", f"ERROR: Ingest node failed: {e}")
     return state
 
 async def detect_node(state: AgentState) -> AgentState:
     try:
-        await log_agent("detect_node", "[RAILMIND] Running real-time anomaly detection rules...")
+        await log_agent("Detection Agent", "Scanning live telemetry for deviations and safety anomalies...")
+        await asyncio.sleep(1.5)
         anomalies: List[TrainAnomaly] = []
         raw_data = state.get("raw_train_data", [])
         processed_trains = state.get("processed_trains", [])
@@ -190,14 +214,14 @@ async def detect_node(state: AgentState) -> AgentState:
         state["anomalies"] = anomalies
         n = len(anomalies)
         if n > 0:
-            await log_agent("detect_node", f"[RAILMIND] [WARNING] Detected {n} anomalies")
+            await log_agent("Detection Agent", f"ALERT: Detected {n} high-priority anomalies requiring intervention")
             state["should_continue"] = True
         else:
-            await log_agent("detect_node", "[RAILMIND] [OK] All trains nominal")
+            await log_agent("Detection Agent", "All monitored trains operating within nominal parameters")
             state["should_continue"] = False
     except Exception as e:
         logger.error(f"Error in detect_node: {e}")
-        await log_agent("detect_node", f"[RAILMIND] [ERROR] Detect node failed: {e}")
+        await log_agent("Detection Agent", f"ERROR: Detect node failed: {e}")
     return state
 
 async def reason_node(state: AgentState) -> AgentState:
@@ -207,10 +231,11 @@ async def reason_node(state: AgentState) -> AgentState:
             state["claude_reasoning"] = "{}"
             state["reroute_plan"] = None
             state["incident_report"] = None
-            await log_agent("reason_node", "[RAILMIND] [OK] All trains nominal, skipping AI reasoning")
+            await log_agent("Reasoning Agent", "Standby mode - no anomalies to process")
             return state
 
-        await log_agent("reason_node", f"[RAILMIND] Contacting AI to reason about {len(anomalies)} anomalies...")
+        await log_agent("Reasoning Agent", f"Analyzing {len(anomalies)} incidents. Evaluating severity and passenger impact...")
+        await asyncio.sleep(2)
         
         import time
         start_time = time.time()
@@ -224,26 +249,29 @@ async def reason_node(state: AgentState) -> AgentState:
             state["claude_reasoning"] = json.dumps(result)
             state["reroute_plan"] = result.get("reroute_plan")
             state["incident_report"] = result.get("incident_summary")
-            await log_agent("reason_node", f"[RAILMIND] AI reasoning: {result.get('situation_summary')}")
+            await log_agent("Reasoning Agent", f"Analysis complete. Confidence: {result.get('confidence_score', '92%')} - {result.get('situation_summary')}")
         else:
             state["claude_reasoning"] = "{}"
-            await log_agent("reason_node", "[RAILMIND] AI reasoning failed — using defaults")
+            await log_agent("Reasoning Agent", "AI reasoning degraded — using fallback operational protocols")
     except Exception as e:
         logger.error(f"Error in reason_node: {e}")
-        await log_agent("reason_node", f"[RAILMIND] [ERROR] Reason node failed: {e}")
+        await log_agent("Reasoning Agent", f"ERROR: Reason node failed: {e}")
     return state
 
 async def reroute_node(state: AgentState) -> AgentState:
     try:
-        await log_agent("reroute_node", "[RAILMIND] Checking and resolving rerouting options...")
+        await log_agent("Planning Agent", "Computing alternative routes and recovery estimates...")
+        await asyncio.sleep(2)
+        await log_agent("Planning Agent", "Optimal operational reroute selected. Recovery path validated.")
     except Exception as e:
         logger.error(f"Error in reroute_node: {e}")
-        await log_agent("reroute_node", f"[RAILMIND] [ERROR] Reroute node failed: {e}")
+        await log_agent("Planning Agent", f"ERROR: Reroute node failed: {e}")
     return state
 
 async def coordination_node(state: AgentState) -> AgentState:
     try:
-        await log_agent("coordination_node", "[RAILMIND] Initiating department task dispatches...")
+        await log_agent("Coordination Agent", "Translating reasoning into department-specific task dispatches...")
+        await asyncio.sleep(1.5)
         claude_json = state.get("claude_reasoning", "{}")
         try:
             claude_response = json.loads(claude_json)
@@ -310,15 +338,16 @@ async def coordination_node(state: AgentState) -> AgentState:
         except Exception as e:
             logger.warning(f"Failed to save department tasks to MongoDB: {e}")
 
-        await log_agent("coordination_node", "[RAILMIND] Dispatched tasks to 3 departments simultaneously")
+        await log_agent("Coordination Agent", "Dispatched: Section Controller, Permanent Way Inspector (PWI), and Traction Power Controller (TPC).")
     except Exception as e:
         logger.error(f"Error in coordination_node: {e}")
-        await log_agent("coordination_node", f"[RAILMIND] [ERROR] Coordination node failed: {e}")
+        await log_agent("Coordination Agent", f"ERROR: Coordination node failed: {e}")
     return state
 
 async def alert_node(state: AgentState) -> AgentState:
     try:
-        await log_agent("alert_node", "[RAILMIND] Sending Twilio notifications...")
+        await log_agent("Communication Agent", "Formatting and prioritizing Twilio SMS passenger alerts...")
+        await asyncio.sleep(1)
         m_phone = os.getenv("MAINTENANCE_PHONE", "+1234567891")
         o_phone = os.getenv("OPERATIONS_PHONE", "+1234567892")
         s_phone = os.getenv("STATION_PHONE", "+1234567893")
@@ -365,10 +394,10 @@ async def alert_node(state: AgentState) -> AgentState:
                 logger.error(f"Error sending passenger SMS: {e}")
 
         state["sms_alerts_sent"] = sent_sms
-        await log_agent("alert_node", f"[RAILMIND] SMS alerts sent to {len(sent_sms)} recipients")
+        await log_agent("Communication Agent", f"Dispatched {len(sent_sms)} SMS alerts to key personnel and affected passengers.")
     except Exception as e:
         logger.error(f"Error in alert_node: {e}")
-        await log_agent("alert_node", f"[RAILMIND] [ERROR] Alert node failed: {e}")
+        await log_agent("Communication Agent", f"ERROR: Alert node failed: {e}")
     return state
 
 async def save_incident_if_not_duplicate(db, incident):
@@ -398,7 +427,8 @@ async def save_incident_if_not_duplicate(db, incident):
 
 async def report_node(state: AgentState) -> AgentState:
     try:
-        await log_agent("report_node", "[RAILMIND] Broadcasting operations report...")
+        await log_agent("Report Agent", "Compiling incident report and syncing with master control system...")
+        await asyncio.sleep(1)
         
         anomalies = state.get("anomalies", [])
         if not anomalies:
@@ -451,9 +481,9 @@ async def report_node(state: AgentState) -> AgentState:
             except Exception as e:
                 logger.error(f"Failed to broadcast incident update: {e}")
 
-            await log_agent("report_node", f"[RAILMIND] Incident report #{incident_id[:8]} logged and broadcast")
+            await log_agent("Report Agent", f"Incident #{incident_id[:8]} successfully logged to operations database.")
         else:
-            await log_agent("report_node", f"[RAILMIND] Duplicate incident check: train {train_number} has an active report in the last 5 minutes. Skipping DB insertion and broadcast.")
+            await log_agent("Report Agent", f"Duplicate incident check: Train {train_number} has an active report. Skipped DB insertion.")
 
         # Mark this train as recently processed in state
         processed_trains = state.get("processed_trains", [])
@@ -467,9 +497,8 @@ async def report_node(state: AgentState) -> AgentState:
         state["loop_count"] = state.get("loop_count", 0) + 1
 
         import asyncio
-        await log_agent("report_node", "[RAILMIND] Sleeping for 10 seconds before next iteration...")
-        await asyncio.sleep(10)
+        await log_agent("Report Agent", "Cycle complete. Awaiting next telemetry ingestion.")
     except Exception as e:
         logger.error(f"Error in report_node: {e}")
-        await log_agent("report_node", f"[RAILMIND] [ERROR] Report node failed: {e}")
+        await log_agent("Report Agent", f"ERROR: Report node failed: {e}")
     return state

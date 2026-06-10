@@ -45,7 +45,9 @@ Generate a JSON response:
   "operations_task": "specific ops instruction for THIS train's corridor",
   "station_manager_task": "specific PA announcement for THIS station mentioning THIS train",
   "passenger_sms": "SMS for passengers of train {train_number} max 160 chars",
-  "incident_summary": "formal log entry with train number, station, delay, and action taken"
+  "incident_summary": "formal log entry with train number, station, delay, and action taken",
+  "confidence_score": "e.g. 92%",
+  "risk_score": "High/Medium/Low"
 }}
 """
 
@@ -60,8 +62,8 @@ Generate a JSON response:
         "12625": "Divert 12625 via Sewagram-Wardha loop line, platform change 3→6 at NGP, estimated delay recovery 25 minutes.",
         "12621": "Hold 12621 at Bhopal Outer for track inspection, estimated delay recovery 7 minutes.",
         "12615": "Divert 12615 via Vijayawada-Warangal loop line, platform change 1→3 at BZA, estimated delay recovery 11 minutes.",
-        "12309": "Divert 12309 via Prayagraj bypass loop, platform change 4→8 at PRYJ, estimated delay recovery 14 minutes.",
-        "12721": "Hold 12721 at Warangal for signal green clearance, estimated delay recovery 6 minutes.",
+        "12309": "Route 12309 via Prayagraj bypass loop. Request Traction Power Controller (TPC) to isolate affected OHE block section. Estimated recovery: 60 minutes.",
+        "12721": "Hold 12721 at Warangal for Route Relay Interlocking clearance, estimated delay recovery 6 minutes.",
         "12229": "Divert 12229 via Moradabad avoiding chord line, platform change 2→5 at MB, estimated delay recovery 9 minutes.",
         "12311": "Divert 12311 via Panipat local loop line, platform change 1→3 at PNP, estimated delay recovery 4 minutes.",
         "12641": "Divert 12641 via Madurai-Dindigul chord line, platform change 3→5 at MDU, estimated delay recovery 16 minutes."
@@ -78,7 +80,7 @@ Generate a JSON response:
         "12625": f"Train running {delay_minutes} minutes behind schedule due to signal failure at Wardha Junction.",
         "12621": f"Train running {delay_minutes} minutes behind schedule due to speed restriction near Bhopal Junction.",
         "12615": f"Train running {delay_minutes} minutes behind schedule due to interlocking maintenance work at Vijayawada Junction.",
-        "12309": f"Train running {delay_minutes} minutes behind schedule due to overhead line inspection at Prayagraj Junction.",
+        "12309": f"Train {train_number} delayed by {delay_minutes} minutes due to Overhead Equipment (OHE) line failure in Prayagraj block section. Impacting 2,843 passengers.",
         "12721": f"Train running {delay_minutes} minutes behind schedule due to signal failure near Warangal.",
         "12229": f"Train running {delay_minutes} minutes behind schedule due to automatic brake inspection at Moradabad.",
         "12311": f"Train running {delay_minutes} minutes behind schedule due to slow passenger train ahead near Panipat.",
@@ -88,12 +90,14 @@ Generate a JSON response:
     fallback_response = {
         "incident_title": f"{train_number} {train_name} delayed {delay_minutes}min at {current_station}",
         "situation_summary": situation_db.get(train_number, f"Train running {delay_minutes} minutes behind schedule due to operational constraints at {current_station}."),
-        "reroute_plan": reroute_db.get(train_number, f"Divert {train_number} via alternate loop line, platform change at {current_station}, estimated delay recovery: 15 minutes."),
-        "maintenance_task": f"Inspect and test signaling points and local circuits at {current_station} station immediately.",
-        "operations_task": f"Execute slot re-scheduling and coordinate clearance for train {train_number} on the main line.",
+        "reroute_plan": reroute_db.get(train_number, f"Divert {train_number} via alternate loop line, platform change at {current_station}, estimated delay recovery: 60 minutes."),
+        "maintenance_task": f"PWI (Permanent Way Inspector) to inspect tracks and TPC to resolve OHE block section anomaly at {current_station}.",
+        "operations_task": f"Section Controller to execute slot re-scheduling and coordinate clearance for train {train_number}.",
         "station_manager_task": f"Make PA announcement: Passenger attention please, train {train_number} {train_name} is running late by {delay_minutes} minutes.",
         "passenger_sms": f"[RailMind Alert] Train {train_number} {train_name} is delayed by {delay_minutes} minutes. Please check screens for platform updates.",
-        "incident_summary": f"Automated incident report logged for train {train_number} at {current_station} with {delay_minutes} minutes delay."
+        "incident_summary": f"Automated incident report logged for train {train_number} at {current_station} with {delay_minutes} minutes delay.",
+        "confidence_score": "92%",
+        "risk_score": "High"
     }
 
     prompt = f"{system_prompt}\n\n{user_prompt}"

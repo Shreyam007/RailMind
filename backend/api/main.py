@@ -18,6 +18,8 @@ from ..agents.graph import railmind_graph # type: ignore
 from ..agents.state import AgentState # type: ignore
 from ..services.railways_api import RailwaysAPIClient
 
+agent_wakeup_event = asyncio.Event()
+
 app = FastAPI(
     title="RailMind Operations API",
     description="Autonomous railway operations intelligence agent API",
@@ -51,7 +53,8 @@ latest_agent_state = {
     "last_api_call": "Never",
     "railways_latency_ms": 0,
     "ai_latency_ms": 0,
-    "processed_trains": []
+    "processed_trains": [],
+    "simulate_hero": False
 }
 
 async def run_agent_loop():
@@ -75,7 +78,8 @@ async def run_agent_loop():
                 last_api_call=latest_agent_state.get("last_api_call", "Never"),
                 railways_latency_ms=latest_agent_state.get("railways_latency_ms", 0),
                 ai_latency_ms=latest_agent_state.get("ai_latency_ms", 0),
-                processed_trains=latest_agent_state.get("processed_trains", [])
+                processed_trains=latest_agent_state.get("processed_trains", []),
+                simulate_hero=latest_agent_state.get("simulate_hero", False)
             )
             # Invoke graph using ainvoke
             result = await railmind_graph.ainvoke(initial_state)
@@ -88,7 +92,11 @@ async def run_agent_loop():
         except Exception as e:
             print(f"[RAILMIND] Agent loop error: {e}")
         finally:
-            await asyncio.sleep(60)  # Wait 60 seconds between loops (NOT 1s, NOT continuous)
+            try:
+                await asyncio.wait_for(agent_wakeup_event.wait(), timeout=60)
+                agent_wakeup_event.clear()
+            except asyncio.TimeoutError:
+                pass
 
 @app.on_event("startup")
 async def startup_event():
@@ -183,6 +191,13 @@ async def approve_incident_api(id: str):
         return {"status": "approved", "modified_count": modified_count}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+# REST Endpoint: POST /api/simulate-hero - Trigger hero scenario
+@app.post("/api/simulate-hero")
+async def simulate_hero_api():
+    latest_agent_state["simulate_hero"] = True
+    agent_wakeup_event.set()
+    return {"status": "hero_scenario_activated"}
 
 # REST Endpoint: GET /api/system-status -> returns all system statuses
 @app.get("/api/system-status")
