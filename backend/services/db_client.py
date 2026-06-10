@@ -1,6 +1,5 @@
 import os
 import json
-from datetime import datetime
 from motor.motor_asyncio import AsyncIOMotorClient # type: ignore
 import logging
 from dotenv import load_dotenv
@@ -120,7 +119,7 @@ class FallbackDB:
         try:
             incidents = sorted(incidents, key=lambda x: x.get("timestamp", ""), reverse=True)
         except Exception:
-            pass
+            logger.exception("Failed to sort incidents")
         return incidents[:limit]
 
     async def insert_department_tasks(self, tasks):
