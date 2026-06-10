@@ -193,6 +193,7 @@ async def get_system_status():
         await client.admin.command('ping')
         mongo_status = "Connected"
     except Exception as e:
+        print(f"Error checking MongoDB status: {e}")
         print(f"Error pinging MongoDB in get_system_status: {e}")
         mongo_status = f"Disconnected ({str(e)})"
 
@@ -231,6 +232,7 @@ async def get_telemetry_api():
         incident_count = await db["incidents"].count_documents({})
         task_count = await db["department_tasks"].count_documents({})
     except Exception as e:
+        print(f"Error fetching telemetry metrics: {e}")
         print(f"Error fetching telemetry from MongoDB: {e}")
 
     return {
