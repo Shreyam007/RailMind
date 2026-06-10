@@ -82,21 +82,28 @@ async def run_agent_loop():
                 processed_trains=latest_agent_state.get("processed_trains", []),
                 simulate_hero=latest_agent_state.get("simulate_hero", False)
             )
+            hero_was_running = initial_state.get("simulate_hero", False)
             # Invoke graph using ainvoke
             result = await railmind_graph.ainvoke(initial_state)
             
             # Increment loop count on successful iteration
             if result:
+                hero_requested_during_cycle = (
+                    latest_agent_state.get("simulate_hero", False)
+                    and not hero_was_running
+                )
                 result["loop_count"] = result.get("loop_count", 0) + 1
                 # Sync to global object
                 latest_agent_state.update(result)
                 
-                # Reset hero mode after graph completes a full isolated cycle
-                if latest_agent_state.get("simulate_hero"):
+                if hero_requested_during_cycle:
+                    latest_agent_state["simulate_hero"] = True
+                elif hero_was_running:
                     print("[RAILMIND] Hero scenario cycle complete. Resetting hero lock.")
                     latest_agent_state["simulate_hero"] = False
         except Exception as e:
             print(f"[RAILMIND] Agent loop error: {e}")
+            latest_agent_state["simulate_hero"] = False
         finally:
             try:
                 await asyncio.wait_for(agent_wakeup_event.wait(), timeout=60)
@@ -204,8 +211,13 @@ async def simulate_hero_api():
         try:
             from ..services.db_client import db_client
             if not db_client.use_fallback:
-                await db_client.db.incidents.delete_many({})
-                await db_client.db.department_tasks.delete_many({})
+                await asyncio.wait_for(
+                    asyncio.gather(
+                        db_client.db.incidents.delete_many({}),
+                        db_client.db.department_tasks.delete_many({})
+                    ),
+                    timeout=2.0
+                )
             else:
                 db_client._write_fallback({"incidents": [], "department_tasks": []})
             

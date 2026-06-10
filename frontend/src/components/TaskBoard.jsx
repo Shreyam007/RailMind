@@ -15,30 +15,33 @@ export default function TaskBoard({ tasks = [], onResolve, fullScreen = false })
   );
 
   const getUrgencyBadge = (urgency) => {
+    const normalizedUrgency = String(urgency || 'unknown').toLowerCase();
     let color = '#ef4444'; // Red
     let bg = 'rgba(239, 68, 68, 0.1)';
-    let text = 'URGENT';
+    let text = 'UNKNOWN';
 
-    if (urgency.toLowerCase() === 'medium') {
+    if (normalizedUrgency === 'medium') {
       color = '#f59e0b'; // Yellow
       bg = 'rgba(245, 158, 11, 0.1)';
       text = 'MEDIUM';
-    } else if (urgency.toLowerCase() === 'resolved') {
+    } else if (normalizedUrgency === 'resolved') {
       color = '#10b981'; // Green
       bg = 'rgba(16, 185, 129, 0.1)';
       text = 'RESOLVED';
-    } else if (urgency.toLowerCase() === 'low') {
+    } else if (normalizedUrgency === 'low') {
       color = '#3b82f6'; // Blue
       bg = 'rgba(59, 130, 246, 0.1)';
       text = 'LOW';
-    } else if (urgency.toLowerCase() === 'high') {
+    } else if (normalizedUrgency === 'high') {
       color = '#f97316'; // Orange
       bg = 'rgba(249, 115, 22, 0.1)';
       text = 'HIGH';
-    } else if (urgency.toLowerCase() === 'critical') {
+    } else if (normalizedUrgency === 'critical') {
       color = '#b91c1c'; // Dark Red
       bg = 'rgba(185, 28, 28, 0.1)';
       text = 'CRITICAL';
+    } else if (normalizedUrgency === 'urgent') {
+      text = 'URGENT';
     }
 
     return (

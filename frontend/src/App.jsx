@@ -64,7 +64,10 @@ function MainApp() {
   const readStoredState = (key, fallback) => {
     try {
       const value = localStorage.getItem(key);
-      return value ? JSON.parse(value) : fallback;
+      const parsed = value ? JSON.parse(value) : fallback;
+      if (Array.isArray(fallback)) return Array.isArray(parsed) ? parsed : fallback;
+      if (typeof fallback === 'boolean') return typeof parsed === 'boolean' ? parsed : fallback;
+      return parsed;
     } catch {
       return fallback;
     }
@@ -93,7 +96,8 @@ function MainApp() {
     try {
       const res = await fetch(`${API_BASE}/api/incidents`);
       if (res.ok) {
-        const data = await res.json();
+        const responseData = await res.json();
+        const data = Array.isArray(responseData) ? responseData : [];
         const formatted = data.map(inc => ({
           id: inc.incident_id || inc._id,
           severity: inc.severity || "info",
@@ -125,7 +129,7 @@ function MainApp() {
       const res = await fetch(`${API_BASE}/api/trains`);
       if (res.ok) {
         const data = await res.json();
-        setTrains(data);
+        setTrains(Array.isArray(data) ? data : []);
       }
     } catch (err) {
       console.error("[API] Failed to fetch trains:", err);
@@ -137,7 +141,7 @@ function MainApp() {
       const res = await fetch(`${API_BASE}/api/dept-tasks`);
       if (res.ok) {
         const data = await res.json();
-        setTasks(data);
+        setTasks(Array.isArray(data) ? data : []);
       }
     } catch (err) {
       console.error("[API] Failed to fetch department tasks:", err);
@@ -199,6 +203,7 @@ function MainApp() {
           
           if (payload.type === 'INCIDENT_UPDATE') {
             const report = payload.data;
+            if (!report || typeof report !== 'object') return;
             
             const newIncident = {
               id: report.incident_id,

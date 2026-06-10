@@ -1,4 +1,5 @@
 from google import genai # type: ignore
+import asyncio
 import os
 import json
 from dotenv import load_dotenv # type: ignore
@@ -102,9 +103,12 @@ Generate a JSON response:
     prompt = f"{system_prompt}\n\n{user_prompt}"
 
     try:
-        response = await client.aio.models.generate_content(
-            model="gemini-2.0-flash",
-            contents=prompt
+        response = await asyncio.wait_for(
+            client.aio.models.generate_content(
+                model="gemini-2.0-flash",
+                contents=prompt
+            ),
+            timeout=15.0
         )
         text = response.text.strip()
         text = text.replace("```json", "").replace("```", "").strip()

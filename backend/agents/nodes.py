@@ -258,8 +258,11 @@ async def reason_node(state: AgentState) -> AgentState:
             state["incident_report"] = result.get("incident_summary")
             
             # Use structured logging format
-            confidence_str = result.get('confidence_score', '92')
-            conf_val = int(confidence_str.replace('%', '')) if '%' in confidence_str else 92
+            confidence_str = str(result.get('confidence_score') or '92')
+            try:
+                conf_val = int(confidence_str.replace('%', '').strip())
+            except (TypeError, ValueError):
+                conf_val = 92
             
             await log_agent("Reasoning Agent", result.get('situation_summary', 'Anomaly analyzed.'), severity=result.get('risk_score', 'HIGH').upper(), confidence=conf_val, impact=2843)
             await log_agent("Reasoning Agent", "Reasoning Complete", severity="COMPLETE", confidence=conf_val, impact=2843)
