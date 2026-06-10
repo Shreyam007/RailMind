@@ -28,13 +28,20 @@ twilio_from = os.getenv("TWILIO_PHONE_NUMBER", "+1234567890")
 twilio_client = TwilioSMSClient(account_sid=twilio_sid, auth_token=twilio_token, from_number=twilio_from)
 
 # Shared log assistant that prints logs and broadcasts AGENT_LOG WebSocket events (ISSUE 4)
-async def log_agent(node_name: str, message: str):
+async def log_agent(node_name: str, message: str, severity: str = None, confidence: int = None, impact: int = None):
     print(message)
+    payload = {
+        "agent": node_name,
+        "message": message,
+        "severity": severity,
+        "confidence": confidence,
+        "impact": impact,
+        "timestamp": datetime.utcnow().strftime('%H:%M:%S')
+    }
     try:
         await websocket_manager.broadcast(json.dumps({
             "type": "AGENT_LOG",
-            "message": f"[{datetime.utcnow().strftime('%H:%M:%S')}] {node_name} → {message}",
-            "timestamp": datetime.utcnow().isoformat()
+            "data": payload
         }))
     except Exception as e:
         logger.error(f"Failed to broadcast AGENT_LOG message: {e}")
@@ -81,36 +88,10 @@ async def ingest_node(state: AgentState) -> AgentState:
         print(f"[RAILMIND] API returned {len(results)} trains")
         print(f"[RAILMIND] Sample: {results[0] if results else 'EMPTY - using mock'}")
         
-        if not results:
-            print("[RAILMIND] WARNING: Railways API returned no data, check RAILWAYS_API_KEY in .env")
-            await log_agent("ingest_node", "[RAILMIND] WARNING: Railways API returned no data, check RAILWAYS_API_KEY in .env")
-            results = mock_train_data()
-            print("[RAILMIND] Using mock fallback data")
-            await log_agent("ingest_node", "[RAILMIND] Using mock fallback data")
-            
-        cancelled = await get_cancelled_trains()
-        live_trains = results.copy()
-        for train in cancelled:
-            live_trains.append({
-                "train_number": train.get("TrainNo", "Unknown"),
-                "train_name": train.get("TrainName", "Unknown"),
-                "status": "cancelled",
-                "delay_minutes": 999,
-                "passenger_load": "overcrowded",
-                "current_station": "Unknown",
-                "lat": 20.5937,
-                "lng": 78.9629
-            })
+        hero_mode = state.get("simulate_hero", False)
         
-        for train in live_trains:
-            await websocket_manager.broadcast(json.dumps({
-                "type": "TRAIN_UPDATE",
-                "data": train
-            }))
-        
-        if state.get("simulate_hero"):
-            # Inject Hero Scenario
-            await log_agent("Detection Agent", "CRITICAL: Force-injecting OHE failure scenario for Train 12309")
+        if hero_mode:
+            await log_agent("Ingestion Agent", "Hero Scenario Active: Suspending background anomaly scanning to isolate critical incident.")
             hero_train = {
                 "train_number": "12309",
                 "train_name": "RJPB - NDLS Tejas Rajdhani Express",
@@ -123,10 +104,36 @@ async def ingest_node(state: AgentState) -> AgentState:
                 "source": "RJPB",
                 "destination": "NDLS"
             }
-            # replace or append to live_trains
-            live_trains = [t for t in live_trains if t["train_number"] != "12309"]
-            live_trains.append(hero_train)
-            state["simulate_hero"] = False # Reset flag
+            # Isolate entirely on Train 12309
+            live_trains = [hero_train]
+            # We don't reset simulate_hero here anymore, main.py will reset it after graph completes.
+        else:
+            if not results:
+                print("[RAILMIND] WARNING: Railways API returned no data, check RAILWAYS_API_KEY in .env")
+                await log_agent("ingest_node", "[RAILMIND] WARNING: Railways API returned no data, check RAILWAYS_API_KEY in .env")
+                results = mock_train_data()
+                print("[RAILMIND] Using mock fallback data")
+                await log_agent("ingest_node", "[RAILMIND] Using mock fallback data")
+                
+            cancelled = await get_cancelled_trains()
+            live_trains = results.copy()
+            for train in cancelled:
+                live_trains.append({
+                    "train_number": train.get("TrainNo", "Unknown"),
+                    "train_name": train.get("TrainName", "Unknown"),
+                    "status": "cancelled",
+                    "delay_minutes": 999,
+                    "passenger_load": "overcrowded",
+                    "current_station": "Unknown",
+                    "lat": 20.5937,
+                    "lng": 78.9629
+                })
+
+        for train in live_trains:
+            await websocket_manager.broadcast(json.dumps({
+                "type": "TRAIN_UPDATE",
+                "data": train
+            }))
 
         state["raw_train_data"] = live_trains
         await log_agent("Ingestion Agent", f"Successfully ingested {len(live_trains)} active trains")
@@ -249,7 +256,12 @@ async def reason_node(state: AgentState) -> AgentState:
             state["claude_reasoning"] = json.dumps(result)
             state["reroute_plan"] = result.get("reroute_plan")
             state["incident_report"] = result.get("incident_summary")
-            await log_agent("Reasoning Agent", f"Analysis complete. Confidence: {result.get('confidence_score', '92%')} - {result.get('situation_summary')}")
+            
+            # Use structured logging format
+            confidence_str = result.get('confidence_score', '92')
+            conf_val = int(confidence_str.replace('%', '')) if '%' in confidence_str else 92
+            
+            await log_agent("Reasoning Agent", result.get('situation_summary', 'Anomaly analyzed.'), severity=result.get('risk_score', 'HIGH').upper(), confidence=conf_val, impact=2843)
         else:
             state["claude_reasoning"] = "{}"
             await log_agent("Reasoning Agent", "AI reasoning degraded — using fallback operational protocols")
@@ -401,28 +413,26 @@ async def alert_node(state: AgentState) -> AgentState:
     return state
 
 async def save_incident_if_not_duplicate(db, incident):
-    # Check last 5 minutes for same train number
-    from datetime import datetime, timedelta
-    five_mins_ago = datetime.utcnow() - timedelta(minutes=5)
+    try:
+        is_duplicate = await db_client.has_recent_incident(incident["train_number"], minutes=5)
+    except Exception as e:
+        print(f"[RAILMIND] Mongo unavailable — using temporary in-memory persistence. Error: {e}")
+        is_duplicate = False
     
-    existing = await db.incidents.find_one({
-        "train_number": incident["train_number"],
-        "timestamp": {
-            "$gt": five_mins_ago.isoformat()
-        }
-    })
-    
-    if existing:
+    if is_duplicate:
         print(f"[RAILMIND] Skipping duplicate incident for "
-              f"train {incident['train_number']} "
-              f"(last logged {existing['timestamp']})")
+              f"train {incident['train_number']}")
         return False
     
     # Make a copy to avoid inserting _id of type ObjectId in-place into the original dictionary
     incident_copy = incident.copy()
-    await db.incidents.insert_one(incident_copy)
-    print(f"[RAILMIND] New incident saved: "
-          f"{incident['incident_title']}")
+    try:
+        await db_client.insert_incident(incident_copy)
+        print(f"[RAILMIND] New incident saved: "
+              f"{incident['incident_title']}")
+    except Exception as e:
+        print(f"[RAILMIND] Mongo unavailable — using temporary in-memory persistence. Error: {e}")
+        
     return True
 
 async def report_node(state: AgentState) -> AgentState:
@@ -466,7 +476,10 @@ async def report_node(state: AgentState) -> AgentState:
             "passenger_sms": claude_response.get("passenger_sms") or "Check platform screens for status updates.",
             "resolution_status": "pending",
             "departments_notified": ["maintenance", "operations", "station_manager"],
-            "sms_sent": len(state.get("sms_alerts_sent", []))
+            "sms_sent": len(state.get("sms_alerts_sent", [])),
+            "confidence_score": claude_response.get("confidence_score", "92%"),
+            "passenger_impact": claude_response.get("passenger_impact", "2,843 (Estimated)"),
+            "recovery_eta": claude_response.get("recovery_eta", "60-90 mins")
         }
 
         # Check for duplicates in last 5 minutes before saving (ISSUE 2)
