@@ -257,14 +257,17 @@ async def coordination_node(state: AgentState) -> AgentState:
         severity_rank = {"low": 1, "medium": 2, "high": 3, "critical": 4}
         highest_severity = "low"
         highest_rank = 0
+
         for anomaly in anomalies:
             sev = anomaly.get("severity", "low").lower()
             rank = severity_rank.get(sev, 1)
             if rank > highest_rank:
                 highest_rank = rank
                 highest_severity = sev
+                if highest_rank == 4:
+                    break
 
-        has_critical = any(anomaly.get("severity", "").lower() == "critical" for anomaly in anomalies)
+        has_critical = (highest_severity == "critical")
         operations_urgency = "high" if has_critical else "medium"
 
         maintenance_task: DepartmentTask = {
