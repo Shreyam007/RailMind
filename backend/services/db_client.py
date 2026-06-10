@@ -52,8 +52,8 @@ class FallbackDB:
             logger.error(f"Failed to write to fallback database: {e}")
 
     async def has_recent_incident(self, train_number, minutes=2):
-        from datetime import datetime, timedelta
-        cutoff = datetime.utcnow() - timedelta(minutes=minutes)
+        from datetime import datetime, timezone, timedelta
+        cutoff = datetime.now(timezone.utc) - timedelta(minutes=minutes)
         
         if not self.use_fallback:
             try:

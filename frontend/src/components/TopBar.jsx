@@ -2,7 +2,7 @@
 import React from 'react';
 import { Bell, Settings } from 'lucide-react';
 
-export default function TopBar({ loopCount = 0, incidentCount = 0, wsStatus = 'connected', onNotificationsClick, onSettingsClick, onProfileClick, activeTab = 'Dashboard', onTabChange }) {
+export default function TopBar({ loopCount = 0, incidentCount = 0, wsStatus = 'connected', onNotificationsClick, onSettingsClick, onProfileClick, activeTab = 'Dashboard', onTabChange, onSimulateClick }) {
   const tabs = ['Network', 'Telemetry', 'Schedules', 'Assets'];
   const activeTopTab = ['Telemetry', 'Schedules', 'Assets'].includes(activeTab) ? activeTab : 'Network';
 
@@ -62,6 +62,33 @@ export default function TopBar({ loopCount = 0, incidentCount = 0, wsStatus = 'c
       {/* Right section: System state indicators & settings */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
         
+        {/* Simulation Button */}
+        <button
+          onClick={onSimulateClick}
+          style={{
+            backgroundColor: '#ef444420',
+            border: '1px solid #ef444450',
+            borderRadius: '6px',
+            color: '#ef4444',
+            fontSize: '11px',
+            fontWeight: 700,
+            padding: '6px 12px',
+            cursor: 'pointer',
+            letterSpacing: '0.5px',
+            transition: 'all 0.2s'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = '#ef4444';
+            e.currentTarget.style.color = '#fff';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = '#ef444420';
+            e.currentTarget.style.color = '#ef4444';
+          }}
+        >
+          TRIGGER HERO FLOW
+        </button>
+
         {/* Live and Counts indicators box */}
         <div style={{
           display: 'flex',

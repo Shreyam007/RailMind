@@ -21,6 +21,11 @@ class AgentState(TypedDict):
     anomalies: List[TrainAnomaly]
     claude_reasoning: str
     reroute_plan: Optional[str]
+    probable_cause: Optional[str]
+    passenger_impact: Optional[str]
+    affected_route: Optional[str]
+    delay_recovery: Optional[str]
+    operational_recommendations: Optional[str]
     department_tasks: List[DepartmentTask]
     sms_alerts_sent: List[str]
     incident_report: Optional[str]
@@ -30,4 +35,3 @@ class AgentState(TypedDict):
     railways_latency_ms: int
     ai_latency_ms: int
     processed_trains: List[str]
-

@@ -4,7 +4,7 @@ import logging
 from dotenv import load_dotenv
 from typing import Dict, Any, List
 from uuid import uuid4
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 from ..services.ai_service import reason_with_ai
 from .state import AgentState, TrainAnomaly, DepartmentTask
 from ..services.db_client import db_client
@@ -26,20 +26,35 @@ twilio_from = os.getenv("TWILIO_PHONE_NUMBER", "+1234567890")
 twilio_client = TwilioSMSClient(account_sid=twilio_sid, auth_token=twilio_token, from_number=twilio_from)
 
 # Shared log assistant that prints logs and broadcasts AGENT_LOG WebSocket events (ISSUE 4)
-async def log_agent(node_name: str, message: str):
+async def log_agent(node_name: str, message: str, action: str = "", reasoning: str = ""):
     print(message)
     try:
+        # Map node_name to friendly agent names
+        agent_map = {
+            "ingest_node": "Ingestion Agent",
+            "detect_node": "Detection Agent",
+            "reason_node": "Reasoning Agent",
+            "reroute_node": "Planning Agent",
+            "coordination_node": "Coordination Agent",
+            "alert_node": "Communication Agent",
+            "report_node": "Report Agent"
+        }
+        agent_name = agent_map.get(node_name, node_name)
+
         await websocket_manager.broadcast(json.dumps({
             "type": "AGENT_LOG",
-            "message": f"[{datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')}] [{node_name}] {message}",
-            "timestamp": datetime.utcnow().isoformat()
+            "agent": agent_name,
+            "action": action or message,
+            "reasoning": reasoning,
+            "message": f"[{datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')}] [{node_name}] {message}",
+            "timestamp": datetime.now(timezone.utc).isoformat()
         }))
     except Exception as e:
         logger.error(f"Failed to broadcast AGENT_LOG message: {e}")
 
 async def ingest_node(state: AgentState) -> AgentState:
     try:
-        await log_agent("ingest_node", "[RAILMIND] Ingesting live train status from API feeds...")
+        await log_agent("ingest_node", "Ingesting live train status from API feeds...", action="Fetching train telemetry")
         train_numbers = [
             "12301", "12951", "12001", "12259", "12565",
             "11057", "12627", "12625", "12621", "12615",
@@ -73,7 +88,7 @@ async def ingest_node(state: AgentState) -> AgentState:
         results = train_results
         
         latency = int((time.time() - start_time) * 1000)
-        state["last_api_call"] = datetime.utcnow().isoformat()
+        state["last_api_call"] = datetime.now(timezone.utc).isoformat()
         state["railways_latency_ms"] = latency
         
         print(f"[RAILMIND] API returned {len(results)} trains")
@@ -107,15 +122,15 @@ async def ingest_node(state: AgentState) -> AgentState:
             }))
         
         state["raw_train_data"] = live_trains
-        await log_agent("ingest_node", f"[RAILMIND] Ingested {len(live_trains)} trains")
+        await log_agent("ingest_node", f"Ingested {len(live_trains)} trains", action="Ingestion complete")
     except Exception as e:
         logger.error(f"Error in ingest_node: {e}")
-        await log_agent("ingest_node", f"[RAILMIND] [ERROR] Ingest node failed: {e}")
+        await log_agent("ingest_node", f"Ingest node failed: {e}", action="ERROR")
     return state
 
 async def detect_node(state: AgentState) -> AgentState:
     try:
-        await log_agent("detect_node", "[RAILMIND] Running real-time anomaly detection rules...")
+        await log_agent("detect_node", "Running real-time anomaly detection rules...", action="Scanning for anomalies")
         anomalies: List[TrainAnomaly] = []
         raw_data = state.get("raw_train_data", [])
         processed_trains = state.get("processed_trains", [])
@@ -190,14 +205,14 @@ async def detect_node(state: AgentState) -> AgentState:
         state["anomalies"] = anomalies
         n = len(anomalies)
         if n > 0:
-            await log_agent("detect_node", f"[RAILMIND] [WARNING] Detected {n} anomalies")
+            await log_agent("detect_node", f"Detected {n} anomalies", action="Anomaly detected", reasoning=f"Triggered for {anomalies[0]['train_name']} ({anomalies[0]['train_number']})")
             state["should_continue"] = True
         else:
-            await log_agent("detect_node", "[RAILMIND] [OK] All trains nominal")
+            await log_agent("detect_node", "All trains nominal", action="Scan complete")
             state["should_continue"] = False
     except Exception as e:
         logger.error(f"Error in detect_node: {e}")
-        await log_agent("detect_node", f"[RAILMIND] [ERROR] Detect node failed: {e}")
+        await log_agent("detect_node", f"Detect node failed: {e}", action="ERROR")
     return state
 
 async def reason_node(state: AgentState) -> AgentState:
@@ -207,10 +222,10 @@ async def reason_node(state: AgentState) -> AgentState:
             state["claude_reasoning"] = "{}"
             state["reroute_plan"] = None
             state["incident_report"] = None
-            await log_agent("reason_node", "[RAILMIND] [OK] All trains nominal, skipping AI reasoning")
+            await log_agent("reason_node", "All trains nominal", action="System nominal")
             return state
 
-        await log_agent("reason_node", f"[RAILMIND] Contacting AI to reason about {len(anomalies)} anomalies...")
+        await log_agent("reason_node", f"Evaluating {len(anomalies)} anomalies...", action="Analyzing anomalies")
         
         import time
         start_time = time.time()
@@ -222,28 +237,44 @@ async def reason_node(state: AgentState) -> AgentState:
         
         if result:
             state["claude_reasoning"] = json.dumps(result)
-            state["reroute_plan"] = result.get("reroute_plan")
             state["incident_report"] = result.get("incident_summary")
-            await log_agent("reason_node", f"[RAILMIND] AI reasoning: {result.get('situation_summary')}")
+            state["probable_cause"] = result.get("probable_cause")
+            state["passenger_impact"] = result.get("passenger_impact")
+            state["affected_route"] = result.get("affected_route")
+
+            summary = f"Cause: {state['probable_cause']} | Impact: {state['passenger_impact']}"
+            await log_agent("reason_node", summary, action="Reasoning complete", reasoning=f"Severity: {result.get('severity', 'High')} | Impact: {state['passenger_impact']}")
         else:
             state["claude_reasoning"] = "{}"
-            await log_agent("reason_node", "[RAILMIND] AI reasoning failed — using defaults")
+            await log_agent("reason_node", "AI reasoning failed — using defaults", action="AI fallback active")
     except Exception as e:
         logger.error(f"Error in reason_node: {e}")
-        await log_agent("reason_node", f"[RAILMIND] [ERROR] Reason node failed: {e}")
+        await log_agent("reason_node", f"Reason node failed: {e}", action="ERROR")
     return state
 
 async def reroute_node(state: AgentState) -> AgentState:
     try:
-        await log_agent("reroute_node", "[RAILMIND] Checking and resolving rerouting options...")
+        await log_agent("reroute_node", "Generating rerouting and recovery options...", action="Generating alternate route")
+        claude_json = state.get("claude_reasoning", "{}")
+        try:
+            result = json.loads(claude_json)
+        except:
+            result = {}
+
+        state["reroute_plan"] = result.get("reroute_plan")
+        state["delay_recovery"] = result.get("delay_recovery")
+        state["operational_recommendations"] = result.get("operational_recommendations")
+
+        plan_msg = f"Suggested reroute: {state['reroute_plan']} | Recovery: {state['delay_recovery']}"
+        await log_agent("reroute_node", plan_msg, action="Reroute generated", reasoning=f"Suggested reroute via {state['reroute_plan']}")
     except Exception as e:
         logger.error(f"Error in reroute_node: {e}")
-        await log_agent("reroute_node", f"[RAILMIND] [ERROR] Reroute node failed: {e}")
+        await log_agent("reroute_node", f"Reroute node failed: {e}", action="ERROR")
     return state
 
 async def coordination_node(state: AgentState) -> AgentState:
     try:
-        await log_agent("coordination_node", "[RAILMIND] Initiating department task dispatches...")
+        await log_agent("coordination_node", "Initiating department task dispatches...", action="Dispatching tasks")
         claude_json = state.get("claude_reasoning", "{}")
         try:
             claude_response = json.loads(claude_json)
@@ -302,7 +333,7 @@ async def coordination_node(state: AgentState) -> AgentState:
                 "urgency": task["urgency"],
                 "action_required": task["action_required"],
                 "status": "pending",
-                "timestamp": datetime.utcnow()
+                "timestamp": datetime.now(timezone.utc)
             })
 
         try:
@@ -310,15 +341,15 @@ async def coordination_node(state: AgentState) -> AgentState:
         except Exception as e:
             logger.warning(f"Failed to save department tasks to MongoDB: {e}")
 
-        await log_agent("coordination_node", "[RAILMIND] Dispatched tasks to 3 departments simultaneously")
+        await log_agent("coordination_node", "Dispatched tasks to 3 departments simultaneously", action="Tasks dispatched", reasoning="Maintenance, Operations, and Station Manager notified.")
     except Exception as e:
         logger.error(f"Error in coordination_node: {e}")
-        await log_agent("coordination_node", f"[RAILMIND] [ERROR] Coordination node failed: {e}")
+        await log_agent("coordination_node", f"Coordination node failed: {e}", action="ERROR")
     return state
 
 async def alert_node(state: AgentState) -> AgentState:
     try:
-        await log_agent("alert_node", "[RAILMIND] Sending Twilio notifications...")
+        await log_agent("alert_node", "Sending Twilio notifications...", action="Sending SMS alerts")
         m_phone = os.getenv("MAINTENANCE_PHONE", "+1234567891")
         o_phone = os.getenv("OPERATIONS_PHONE", "+1234567892")
         s_phone = os.getenv("STATION_PHONE", "+1234567893")
@@ -365,40 +396,15 @@ async def alert_node(state: AgentState) -> AgentState:
                 logger.error(f"Error sending passenger SMS: {e}")
 
         state["sms_alerts_sent"] = sent_sms
-        await log_agent("alert_node", f"[RAILMIND] SMS alerts sent to {len(sent_sms)} recipients")
+        await log_agent("alert_node", f"SMS alerts sent to {len(sent_sms)} recipients", action="SMS alerts dispatched", reasoning=f"Alerted {len(sent_sms)} recipients via Twilio.")
     except Exception as e:
         logger.error(f"Error in alert_node: {e}")
-        await log_agent("alert_node", f"[RAILMIND] [ERROR] Alert node failed: {e}")
+        await log_agent("alert_node", f"Alert node failed: {e}", action="ERROR")
     return state
-
-async def save_incident_if_not_duplicate(db, incident):
-    # Check last 5 minutes for same train number
-    from datetime import datetime, timedelta
-    five_mins_ago = datetime.utcnow() - timedelta(minutes=5)
-    
-    existing = await db.incidents.find_one({
-        "train_number": incident["train_number"],
-        "timestamp": {
-            "$gt": five_mins_ago.isoformat()
-        }
-    })
-    
-    if existing:
-        print(f"[RAILMIND] Skipping duplicate incident for "
-              f"train {incident['train_number']} "
-              f"(last logged {existing['timestamp']})")
-        return False
-    
-    # Make a copy to avoid inserting _id of type ObjectId in-place into the original dictionary
-    incident_copy = incident.copy()
-    await db.incidents.insert_one(incident_copy)
-    print(f"[RAILMIND] New incident saved: "
-          f"{incident['incident_title']}")
-    return True
 
 async def report_node(state: AgentState) -> AgentState:
     try:
-        await log_agent("report_node", "[RAILMIND] Broadcasting operations report...")
+        await log_agent("report_node", "Broadcasting operations report...", action="Finalizing report")
         
         anomalies = state.get("anomalies", [])
         if not anomalies:
@@ -421,7 +427,7 @@ async def report_node(state: AgentState) -> AgentState:
         
         incident_report = {
             "incident_id": incident_id,
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "train_number": train_number,
             "train_name": train_name,
             "incident_title": claude_response.get("incident_title") or f"{train_number} {train_name} delayed {delay_minutes}min at {current_station}",
@@ -429,7 +435,12 @@ async def report_node(state: AgentState) -> AgentState:
             "delay_minutes": delay_minutes,
             "severity": severity,
             "situation_summary": claude_response.get("situation_summary") or f"Train {train_number} {train_name} is running {delay_minutes} minutes behind schedule at {current_station}.",
-            "reroute_plan": claude_response.get("reroute_plan") or "Redirect affected trains via alternate route.",
+            "probable_cause": state.get("probable_cause"),
+            "passenger_impact": state.get("passenger_impact"),
+            "affected_route": state.get("affected_route"),
+            "reroute_plan": state.get("reroute_plan") or "Redirect affected trains via alternate route.",
+            "delay_recovery": state.get("delay_recovery"),
+            "operational_recommendations": state.get("operational_recommendations"),
             "maintenance_task": claude_response.get("maintenance_task") or "Inspect signaling hardware.",
             "operations_task": claude_response.get("operations_task") or "Execute scheduling adjustments.",
             "station_manager_task": claude_response.get("station_manager_task") or "Broadcast delay announcements.",
@@ -440,8 +451,12 @@ async def report_node(state: AgentState) -> AgentState:
         }
 
         # Check for duplicates in last 5 minutes before saving (ISSUE 2)
-        saved = await save_incident_if_not_duplicate(db_client.db, incident_report)
-        if saved:
+        # Using db_client wrapper to handle fallback if MongoDB is unavailable
+        is_duplicate = await db_client.has_recent_incident(train_number, minutes=5)
+
+        if not is_duplicate:
+            await db_client.insert_incident(incident_report)
+
             # Broadcast via WebSocket
             try:
                 await websocket_manager.broadcast(json.dumps({
@@ -451,9 +466,9 @@ async def report_node(state: AgentState) -> AgentState:
             except Exception as e:
                 logger.error(f"Failed to broadcast incident update: {e}")
 
-            await log_agent("report_node", f"[RAILMIND] Incident report #{incident_id[:8]} logged and broadcast")
+            await log_agent("report_node", f"Incident report #{incident_id[:8]} logged and broadcast", action="Incident report logged")
         else:
-            await log_agent("report_node", f"[RAILMIND] Duplicate incident check: train {train_number} has an active report in the last 5 minutes. Skipping DB insertion and broadcast.")
+            await log_agent("report_node", f"Duplicate incident check: train {train_number} has an active report in the last 5 minutes. Skipping DB insertion and broadcast.", action="Duplicate skipped")
 
         # Mark this train as recently processed in state
         processed_trains = state.get("processed_trains", [])
@@ -471,5 +486,5 @@ async def report_node(state: AgentState) -> AgentState:
         await asyncio.sleep(10)
     except Exception as e:
         logger.error(f"Error in report_node: {e}")
-        await log_agent("report_node", f"[RAILMIND] [ERROR] Report node failed: {e}")
+        await log_agent("report_node", f"Report node failed: {e}", action="ERROR")
     return state

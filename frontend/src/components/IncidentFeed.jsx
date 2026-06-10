@@ -270,6 +270,36 @@ export default function IncidentFeed({ incidents = [], onApprove, onAcknowledge 
                         {incident.station_manager_task}
                       </div>
                     )}
+                    {incident.probable_cause && (
+                      <div>
+                        <strong style={{ color: '#e2e8f0', display: 'block', marginBottom: '2px' }}>Probable Cause:</strong>
+                        {incident.probable_cause}
+                      </div>
+                    )}
+                    {incident.passenger_impact && (
+                      <div>
+                        <strong style={{ color: '#e2e8f0', display: 'block', marginBottom: '2px' }}>Passenger Impact:</strong>
+                        {incident.passenger_impact}
+                      </div>
+                    )}
+                    {incident.affected_route && (
+                      <div>
+                        <strong style={{ color: '#e2e8f0', display: 'block', marginBottom: '2px' }}>Affected Route:</strong>
+                        {incident.affected_route}
+                      </div>
+                    )}
+                    {incident.delay_recovery && (
+                      <div>
+                        <strong style={{ color: '#e2e8f0', display: 'block', marginBottom: '2px' }}>Delay Recovery:</strong>
+                        {incident.delay_recovery}
+                      </div>
+                    )}
+                    {incident.operational_recommendations && (
+                      <div>
+                        <strong style={{ color: '#e2e8f0', display: 'block', marginBottom: '2px' }}>Recommendations:</strong>
+                        {incident.operational_recommendations}
+                      </div>
+                    )}
                     {incident.passenger_sms && (
                       <div>
                         <strong style={{ color: '#e2e8f0', display: 'block', marginBottom: '2px' }}>Passenger SMS:</strong>

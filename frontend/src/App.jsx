@@ -5,6 +5,7 @@ import TopBar from './components/TopBar';
 import LiveMap from './components/LiveMap';
 import IncidentFeed from './components/IncidentFeed';
 import TaskBoard from './components/TaskBoard';
+import AgentActivityFeed from './components/AgentActivityFeed';
 import { ShieldAlert, AlertTriangle, Info, Check, CornerDownRight, Terminal, RefreshCw, X, Shield, User, HelpCircle, Activity, Bell, Settings } from 'lucide-react';
 
 class ErrorBoundary extends React.Component {
@@ -92,7 +93,12 @@ function MainApp() {
           timestamp: new Date(inc.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
           incident_title: inc.incident_title || inc.summary || "Operations Anomaly",
           situation_summary: inc.situation_summary || inc.summary || "Investigating operational status.",
+          probable_cause: inc.probable_cause || '',
+          passenger_impact: inc.passenger_impact || '',
+          affected_route: inc.affected_route || '',
           reroute_plan: inc.reroute_plan || null,
+          delay_recovery: inc.delay_recovery || '',
+          operational_recommendations: inc.operational_recommendations || '',
           maintenance_task: inc.maintenance_task || '',
           operations_task: inc.operations_task || '',
           station_manager_task: inc.station_manager_task || '',
@@ -168,7 +174,12 @@ function MainApp() {
               timestamp: new Date(report.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
               incident_title: report.incident_title || report.summary || "New Incident Logged",
               situation_summary: report.situation_summary || report.summary || "Investigating operational status.",
+              probable_cause: report.probable_cause || '',
+              passenger_impact: report.passenger_impact || '',
+              affected_route: report.affected_route || '',
               reroute_plan: report.reroute_plan || null,
+              delay_recovery: report.delay_recovery || '',
+              operational_recommendations: report.operational_recommendations || '',
               maintenance_task: report.maintenance_task || '',
               operations_task: report.operations_task || '',
               station_manager_task: report.station_manager_task || '',
@@ -263,6 +274,16 @@ function MainApp() {
       }
     } catch (err) {
       console.error("Error sending resolution request:", err);
+    }
+  };
+
+  const handleSimulate = async () => {
+    console.log("[SIMULATION] Triggering hero flow...");
+    try {
+      const res = await fetch(`${API_BASE}/api/simulate`, { method: 'POST' });
+      if (!res.ok) console.error("Failed to trigger simulation");
+    } catch (err) {
+      console.error("Error triggering simulation:", err);
     }
   };
 
@@ -912,6 +933,7 @@ function MainApp() {
               </div>
               <TaskBoard tasks={tasks} onResolve={handleResolve} />
             </div>
+            <AgentActivityFeed logs={logs} />
             <IncidentFeed 
               incidents={incidents} 
               onApprove={handleApprove}
@@ -983,6 +1005,7 @@ function MainApp() {
         onSettingsClick={() => setShowSettings(true)}
         onNotificationsClick={() => setShowNotifications(true)}
         onProfileClick={() => setShowProfile(true)}
+        onSimulateClick={handleSimulate}
       />
 
       {wsStatus === 'reconnecting' && (

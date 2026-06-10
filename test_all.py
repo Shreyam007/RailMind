@@ -5,7 +5,7 @@ import asyncio
 import httpx # type: ignore
 import threading
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 from dotenv import load_dotenv # type: ignore
 
 # Load env variables from .env file
@@ -197,7 +197,7 @@ async def run_tests():
             if db is None:
                 db = client["railmind"]
             test_col = db["test_all_suite"]
-            doc_id = test_col.insert_one({"test": "railmind", "ts": datetime.utcnow()}).inserted_id
+            doc_id = test_col.insert_one({"test": "railmind", "ts": datetime.now(timezone.utc)}).inserted_id
             read_doc = test_col.find_one({"_id": doc_id})
             test_col.delete_one({"_id": doc_id})
             if read_doc and read_doc.get("test") == "railmind":

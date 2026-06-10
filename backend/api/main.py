@@ -1,7 +1,7 @@
 import asyncio
 import os
 import uvicorn
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 from dotenv import load_dotenv
 
 # Ensure env variables are loaded before imports
@@ -120,13 +120,12 @@ async def ws_endpoint(websocket: WebSocket):
 @app.get("/api/incidents")
 async def get_incidents_api(all: bool = False):
     try:
-        from datetime import datetime, timedelta
         # Fetch up to 1000 incidents
         incidents = await db_client.get_incidents(limit=1000)
         if all:
             return incidents
             
-        cutoff = datetime.utcnow() - timedelta(hours=24)
+        cutoff = datetime.now(timezone.utc) - timedelta(hours=24)
         filtered = []
         for inc in incidents:
             ts_str = inc.get("timestamp")
@@ -219,6 +218,64 @@ async def get_system_status():
             "station_manager": os.getenv("STATION_PHONE", "+919651058174")
         }
     }
+
+# REST Endpoint: POST /api/simulate -> triggers hero scenario
+@app.post("/api/simulate")
+async def simulate_incident():
+    """
+    Manually injects the Patna Express overhead line failure scenario.
+    """
+    print("[SIMULATION] Triggering Patna Express overhead line failure scenario")
+
+    hero_anomaly = {
+        "train_number": "12309",
+        "train_name": "Patna Express",
+        "anomaly_type": "delay",
+        "severity": "critical",
+        "location": "Patna Junction",
+        "delay_minutes": 43,
+        "passenger_load": "overcrowded",
+        "current_station": "Patna Junction",
+        "status": "delayed",
+        "source": "RAJENDRA NAGAR T",
+        "destination": "NEW DELHI"
+    }
+
+    # Inject directly into a one-off graph run
+    initial_state = AgentState(
+        raw_train_data=[],
+        anomalies=[hero_anomaly],
+        claude_reasoning="",
+        reroute_plan=None,
+        probable_cause=None,
+        passenger_impact=None,
+        affected_route=None,
+        delay_recovery=None,
+        operational_recommendations=None,
+        department_tasks=[],
+        sms_alerts_sent=[],
+        incident_report=None,
+        loop_count=latest_agent_state.get("loop_count", 0),
+        should_continue=True,
+        last_api_call=datetime.now(timezone.utc).isoformat(),
+        railways_latency_ms=0,
+        ai_latency_ms=0,
+        processed_trains=[]
+    )
+
+    # Run in background to not block the request
+    async def run_sim():
+        try:
+            result = await railmind_graph.ainvoke(initial_state)
+            if result:
+                result["loop_count"] = latest_agent_state.get("loop_count", 0) + 1
+                latest_agent_state.update(result)
+        except Exception as e:
+            print(f"[SIMULATION] Error: {e}")
+
+    asyncio.create_task(run_sim())
+
+    return {"status": "Simulation triggered", "scenario": "Patna Express Overhead Failure"}
 
 # REST Endpoint: GET /api/telemetry -> returns timing metrics
 @app.get("/api/telemetry")

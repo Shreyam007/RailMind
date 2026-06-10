@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field  # type: ignore
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional, Dict, Any
 
 class IncidentModel(BaseModel):
@@ -12,7 +12,7 @@ class IncidentModel(BaseModel):
     severity: str  # e.g., 'Low', 'Medium', 'High', 'Critical'
     status: str    # e.g., 'Reported', 'Investigating', 'Resolved'
     train_id: str
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     metadata: Optional[Dict[str, Any]] = None
 
     model_config = {

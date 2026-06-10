@@ -34,12 +34,18 @@ Current Station: {current_station}
 Delay: {delay_minutes} minutes
 Status: {status}
 Route: {source} → {destination}
+Severity: {severity}
 
 Generate a JSON response:
 {{
   "incident_title": "specific title mentioning train name and station, e.g. '12301 Howrah Rajdhani delayed 87min at Kanpur Central'",
   "situation_summary": "1 sentence specific to this train",
+  "probable_cause": "evaluate the most likely cause of this specific anomaly",
+  "passenger_impact": "estimate number of affected passengers and impact level",
+  "affected_route": "describe the specific track segment or corridor affected",
   "reroute_plan": "specific rerouting for THIS train on THIS route, mentioning actual alternate stations",
+  "delay_recovery": "estimated time recovery via rerouting in minutes",
+  "operational_recommendations": "step-by-step operational instructions for controllers",
   "maintenance_task": "specific task for THIS station's maintenance team",
   "operations_task": "specific ops instruction for THIS train's corridor",
   "station_manager_task": "specific PA announcement for THIS station mentioning THIS train",
@@ -77,7 +83,7 @@ Generate a JSON response:
         "12625": f"Train running {delay_minutes} minutes behind schedule due to signal failure at Wardha Junction.",
         "12621": f"Train running {delay_minutes} minutes behind schedule due to speed restriction near Bhopal Junction.",
         "12615": f"Train running {delay_minutes} minutes behind schedule due to interlocking maintenance work at Vijayawada Junction.",
-        "12309": f"Train running {delay_minutes} minutes behind schedule due to overhead line inspection at Prayagraj Junction.",
+        "12309": f"Train running {delay_minutes} minutes behind schedule due to overhead equipment failure at Patna Junction.",
         "12721": f"Train running {delay_minutes} minutes behind schedule due to signal failure near Warangal.",
         "12229": f"Train running {delay_minutes} minutes behind schedule due to automatic brake inspection at Moradabad.",
         "12311": f"Train running {delay_minutes} minutes behind schedule due to slow passenger train ahead near Panipat.",
@@ -87,7 +93,12 @@ Generate a JSON response:
     fallback_response = {
         "incident_title": f"{train_number} {train_name} delayed {delay_minutes}min at {current_station}",
         "situation_summary": situation_db.get(train_number, f"Train running {delay_minutes} minutes behind schedule due to operational constraints at {current_station}."),
+        "probable_cause": "Overhead equipment malfunction or signaling issue." if train_number == "12309" else "Operational constraints.",
+        "passenger_impact": "High | ~2,500 passengers affected" if severity in ["high", "critical"] else "Medium | ~1,200 passengers affected",
+        "affected_route": f"{source} to {destination} main line corridor.",
         "reroute_plan": reroute_db.get(train_number, f"Divert {train_number} via alternate loop line, platform change at {current_station}, estimated delay recovery: 15 minutes."),
+        "delay_recovery": "15 minutes" if train_number == "12309" else "10 minutes",
+        "operational_recommendations": "Clear adjacent lines and prioritize express corridor flow.",
         "maintenance_task": f"Inspect and test signaling points and local circuits at {current_station} station immediately.",
         "operations_task": f"Execute slot re-scheduling and coordinate clearance for train {train_number} on the main line.",
         "station_manager_task": f"Make PA announcement: Passenger attention please, train {train_number} {train_name} is running late by {delay_minutes} minutes.",
@@ -106,11 +117,12 @@ Generate a JSON response:
         text = text.replace("```json", "").replace("```", "").strip()
         result = json.loads(text)
         # Verify required keys exist
-        required_keys = ["incident_title", "situation_summary", "reroute_plan", "maintenance_task", 
-                         "operations_task", "station_manager_task", "passenger_sms", "incident_summary"]
+        required_keys = ["incident_title", "situation_summary", "probable_cause", "passenger_impact",
+                         "affected_route", "reroute_plan", "delay_recovery", "operational_recommendations",
+                         "maintenance_task", "operations_task", "station_manager_task", "passenger_sms", "incident_summary"]
         for key in required_keys:
             if key not in result:
-                result[key] = fallback_response[key]
+                result[key] = fallback_response.get(key, "N/A")
         return result
     except json.JSONDecodeError:
         print("[RAILMIND] Gemini JSON parse failed, using fallback")
