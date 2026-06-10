@@ -220,9 +220,16 @@ function MainApp() {
 
   const handleApprove = async (incidentId) => {
     console.log(`Approving reroute plan for incident: ${incidentId}`);
+    const adminPassword = window.prompt("Enter Admin Password to approve this reroute plan:");
+    if (adminPassword === null) {
+      return; // User cancelled
+    }
     try {
+      const headers = new Headers();
+      headers.set('Authorization', 'Basic ' + btoa('admin:' + adminPassword));
       const res = await fetch(`${API_BASE}/api/incidents/${incidentId}/approve`, {
-        method: 'POST'
+        method: 'POST',
+        headers: headers
       });
       if (res.ok) {
         setIncidents(prev => prev.map(inc => {
@@ -231,6 +238,9 @@ function MainApp() {
           }
           return inc;
         }));
+      } else if (res.status === 401) {
+        alert("Incorrect admin password.");
+        console.error("Unauthorized: Incorrect admin password.");
       } else {
         console.error("Failed to approve incident reroute plan on backend");
       }
