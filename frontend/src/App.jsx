@@ -433,10 +433,18 @@ function MainApp() {
   };
 
   const AnalyticsView = () => {
-    const criticalCount = incidents.filter(i => i.severity === 'critical').length;
-    const warningCount = incidents.filter(i => i.severity === 'warning').length;
-    const infoCount = incidents.filter(i => i.severity === 'info').length;
-    const totalCount = incidents.length;
+    const { criticalCount, warningCount, infoCount, totalCount } = React.useMemo(() => {
+      const counts = incidents.reduce(
+        (acc, i) => {
+          if (i.severity === 'critical') acc.criticalCount++;
+          else if (i.severity === 'warning') acc.warningCount++;
+          else if (i.severity === 'info') acc.infoCount++;
+          return acc;
+        },
+        { criticalCount: 0, warningCount: 0, infoCount: 0 }
+      );
+      return { ...counts, totalCount: incidents.length };
+    }, [incidents]);
 
     const maxCount = Math.max(criticalCount, warningCount, infoCount, 1);
 
