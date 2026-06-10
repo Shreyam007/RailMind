@@ -120,7 +120,7 @@ class FallbackDB:
         try:
             incidents = sorted(incidents, key=lambda x: x.get("timestamp", ""), reverse=True)
         except Exception as e:
-            logger.error(f"Failed to sort incidents: {e}")
+            logger.error("Failed to sort incidents: %s", e)
         return incidents[:limit]
 
     async def insert_department_tasks(self, tasks):
