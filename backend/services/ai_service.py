@@ -1,4 +1,4 @@
-import google.generativeai as genai # type: ignore
+from google import genai # type: ignore
 import os
 import json
 from dotenv import load_dotenv # type: ignore
@@ -8,8 +8,7 @@ env_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__
 load_dotenv(dotenv_path=env_path)
 
 # Configure Gemini API key
-genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
-model = genai.GenerativeModel("gemini-2.0-flash")
+client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 async def reason_with_ai(anomalies: list) -> dict:
     if not anomalies:
         return {}
@@ -103,7 +102,10 @@ Generate a JSON response:
     prompt = f"{system_prompt}\n\n{user_prompt}"
 
     try:
-        response = await model.generate_content_async(prompt)
+        response = await client.aio.models.generate_content(
+            model="gemini-2.0-flash",
+            contents=prompt
+        )
         text = response.text.strip()
         text = text.replace("```json", "").replace("```", "").strip()
         result = json.loads(text)
