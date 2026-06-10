@@ -29,11 +29,19 @@ export default function TaskBoard({ tasks = [], onResolve, fullScreen = false })
   ];
 
   // Group tasks by department
-  const maintenanceTasks = activeTasks.filter(t => t.department?.toLowerCase() === 'maintenance');
-  const operationsTasks = activeTasks.filter(t => t.department?.toLowerCase() === 'operations');
-  const stationTasks = activeTasks.filter(t => 
-    t.department?.toLowerCase() === 'station_manager' || 
-    t.department?.toLowerCase() === 'station'
+  const { maintenanceTasks, operationsTasks, stationTasks } = activeTasks.reduce(
+    (acc, t) => {
+      const dept = t.department?.toLowerCase();
+      if (dept === 'maintenance') {
+        acc.maintenanceTasks.push(t);
+      } else if (dept === 'operations') {
+        acc.operationsTasks.push(t);
+      } else if (dept === 'station_manager' || dept === 'station') {
+        acc.stationTasks.push(t);
+      }
+      return acc;
+    },
+    { maintenanceTasks: [], operationsTasks: [], stationTasks: [] }
   );
 
   const getUrgencyBadge = (urgency) => {
