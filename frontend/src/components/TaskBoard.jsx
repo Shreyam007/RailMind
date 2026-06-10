@@ -4,29 +4,7 @@ import { MoreHorizontal, CheckCircle2, AlertTriangle } from 'lucide-react';
 
 export default function TaskBoard({ tasks = [], onResolve, fullScreen = false }) {
   // Setup default mock tasks if tasks list is empty
-  const activeTasks = tasks.length > 0 ? tasks : [
-    {
-      id: "task_001",
-      department: "maintenance",
-      task_description: "Engine check - Train 402",
-      urgency: "urgent",
-      action_required: "DUE: 15:00"
-    },
-    {
-      id: "task_002",
-      department: "operations",
-      task_description: "Signal Calibration",
-      urgency: "medium",
-      action_required: "ASSIGNED: ALPHA-9"
-    },
-    {
-      id: "task_003",
-      department: "station_manager",
-      task_description: "Platform 4 Clearance",
-      urgency: "resolved",
-      action_required: "COMPLETED 10:55"
-    }
-  ];
+  const activeTasks = tasks || [];
 
   // Group tasks by department
   const maintenanceTasks = activeTasks.filter(t => t.department?.toLowerCase() === 'maintenance');
@@ -236,11 +214,17 @@ export default function TaskBoard({ tasks = [], onResolve, fullScreen = false })
       </div>
 
       {/* Grid columns */}
-      <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
-        {renderColumn('Maintenance', maintenanceTasks)}
-        {renderColumn('Operations', operationsTasks)}
-        {renderColumn('Station Manager', stationTasks)}
-      </div>
+      {activeTasks.length === 0 ? (
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b', fontStyle: 'italic', fontSize: '13px' }}>
+          No department tasks generated yet
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+          {renderColumn('Maintenance', maintenanceTasks)}
+          {renderColumn('Operations', operationsTasks)}
+          {renderColumn('Station Manager', stationTasks)}
+        </div>
+      )}
     </div>
   );
 }

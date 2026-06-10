@@ -69,6 +69,7 @@ function MainApp() {
   const [trains, setTrains] = useState([]);
   const [wsStatus, setWsStatus] = useState('reconnecting');
   const [logs, setLogs] = useState([]);
+  const [isHeroRunning, setIsHeroRunning] = useState(false);
   
   // Modal Overlay States
   const [showSettings, setShowSettings] = useState(false);
@@ -176,7 +177,10 @@ function MainApp() {
               resolution_status: report.resolution_status || 'pending',
               approved: report.resolution_status === 'approved',
               departments: report.departments_notified || [],
-              train_number: report.train_number || 'Unknown'
+              train_number: report.train_number || 'Unknown',
+              confidence_score: report.confidence_score,
+              passenger_impact: report.passenger_impact,
+              recovery_eta: report.recovery_eta
             };
 
             setIncidents(prev => {
@@ -187,6 +191,9 @@ function MainApp() {
             if (report.loop_count !== undefined) {
               setLoopCount(report.loop_count);
             }
+            
+            // Clear hero lock if an incident report finally drops
+            setIsHeroRunning(false);
 
             fetchTasks();
             fetchTrains();
@@ -267,15 +274,91 @@ function MainApp() {
   };
 
   const triggerHeroScenario = async () => {
+    if (isHeroRunning) {
+      alert("Hero scenario already active");
+      return;
+    }
+    
+    // Clear frontend state immediately
+    setIncidents([]);
+    setTasks([]);
+    setLogs([]);
+    setIsHeroRunning(true);
+    
     try {
       console.log("Triggering Hero Scenario...");
-      await fetch(`${API_BASE}/api/simulate-hero`, { method: 'POST' });
+      const res = await fetch(`${API_BASE}/api/simulate-hero`, { method: 'POST' });
+      const data = await res.json();
+      if (data.status === 'hero_scenario_already_in_progress') {
+        alert("Hero scenario already active");
+      }
     } catch (err) {
       console.error("Failed to trigger hero scenario:", err);
+      setIsHeroRunning(false);
     }
   };
 
   // Views Render Functions
+  const IncidentCommandCenter = ({ incident }) => {
+    if (!incident) return null;
+    return (
+      <div style={{
+        backgroundColor: '#7f1d1d', // Dark red background
+        color: '#f8fafc',
+        padding: '16px 24px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '12px',
+        borderBottom: '2px solid #ef4444',
+        boxShadow: '0 4px 6px rgba(0,0,0,0.3)',
+        zIndex: 10
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <ShieldAlert size={24} style={{ color: '#fca5a5' }} />
+          <h2 style={{ fontSize: '18px', fontWeight: 700, margin: 0, letterSpacing: '0.5px' }}>
+            🚨 ACTIVE INCIDENT
+          </h2>
+        </div>
+        <div style={{ 
+          display: 'grid', 
+          gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', 
+          gap: '16px',
+          backgroundColor: 'rgba(0,0,0,0.2)',
+          padding: '12px',
+          borderRadius: '6px'
+        }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            <span style={{ fontSize: '11px', color: '#fca5a5', fontWeight: 600, textTransform: 'uppercase' }}>Train</span>
+            <span style={{ fontSize: '14px', fontWeight: 600 }}>{incident.train_number} {incident.train_name}</span>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            <span style={{ fontSize: '11px', color: '#fca5a5', fontWeight: 600, textTransform: 'uppercase' }}>Issue</span>
+            <span style={{ fontSize: '14px', fontWeight: 600 }}>{incident.incident_title || 'Operations Anomaly'}</span>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            <span style={{ fontSize: '11px', color: '#fca5a5', fontWeight: 600, textTransform: 'uppercase' }}>Location</span>
+            <span style={{ fontSize: '14px', fontWeight: 600 }}>{incident.current_station || 'Unknown Location'}</span>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            <span style={{ fontSize: '11px', color: '#fca5a5', fontWeight: 600, textTransform: 'uppercase' }}>Passenger Impact</span>
+            <span style={{ fontSize: '14px', fontWeight: 600 }}>{incident.passenger_impact || 'Unknown'}</span>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            <span style={{ fontSize: '11px', color: '#fca5a5', fontWeight: 600, textTransform: 'uppercase' }}>Recovery ETA</span>
+            <span style={{ fontSize: '14px', fontWeight: 600 }}>{incident.recovery_eta || 'Pending Analysis'}</span>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            <span style={{ fontSize: '11px', color: '#fca5a5', fontWeight: 600, textTransform: 'uppercase' }}>AI Confidence</span>
+            <span style={{ fontSize: '14px', fontWeight: 600 }}>{incident.confidence_score || 'N/A'}</span>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            <span style={{ fontSize: '11px', color: '#fca5a5', fontWeight: 600, textTransform: 'uppercase' }}>Current Status</span>
+            <span style={{ fontSize: '14px', fontWeight: 600, color: '#fcd34d', textTransform: 'capitalize' }}>{incident.resolution_status || 'Pending'}</span>
+          </div>
+        </div>
+      </div>
+    );
+  };
   const IncidentFeedView = () => {
     const [filter, setFilter] = useState('ALL');
     const [expandedIncident, setExpandedIncident] = useState(null);
@@ -928,35 +1011,58 @@ function MainApp() {
           </h3>
           <button 
             onClick={triggerHeroScenario}
+            disabled={isHeroRunning}
             style={{ 
-              backgroundColor: 'transparent', border: '1px dashed #ef4444', 
-              color: '#ef4444', fontSize: '10px', padding: '2px 6px', 
-              borderRadius: '4px', cursor: 'pointer', opacity: 0.3 
+              backgroundColor: isHeroRunning ? 'rgba(239, 68, 68, 0.2)' : 'transparent', 
+              border: isHeroRunning ? '1px solid #ef4444' : '1px dashed #ef4444', 
+              color: '#ef4444', fontSize: '10px', padding: '4px 8px', 
+              borderRadius: '4px', cursor: isHeroRunning ? 'not-allowed' : 'pointer', 
+              opacity: isHeroRunning ? 1 : 0.6,
+              fontWeight: 600,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px'
             }}
             title="Simulate Major Incident"
           >
-            🚨
+            🚨 {isHeroRunning ? "Scenario Running..." : "Ready"}
           </button>
         </div>
         <div style={{
-          flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '6px',
-          fontFamily: 'monospace', fontSize: '12px', color: '#cbd5e1'
+          flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px',
+          fontFamily: 'system-ui, sans-serif', color: '#cbd5e1'
         }}>
           {logs.length === 0 ? (
-            <div style={{ color: '#64748b', fontStyle: 'italic' }}>Awaiting autonomous activity...</div>
+            <div style={{ color: '#64748b', fontStyle: 'italic', fontSize: '12px' }}>Awaiting autonomous activity...</div>
           ) : (
             logs.map((log, idx) => {
-              const isAction = log.message.includes("→");
+              const payload = log.data || {};
+              const ts = payload.timestamp || log.message?.substring(1,9) || "";
+              const agent = payload.agent || "System";
+              const msg = payload.message || log.message || "";
+              
               return (
                 <div key={idx} style={{ 
-                  display: 'flex', gap: '8px', 
-                  backgroundColor: isAction ? 'rgba(52, 211, 153, 0.05)' : 'transparent',
-                  padding: isAction ? '4px 6px' : '2px',
+                  display: 'flex', flexDirection: 'column', gap: '4px', 
+                  backgroundColor: 'rgba(52, 211, 153, 0.05)',
+                  padding: '10px 12px',
                   borderRadius: '4px',
-                  borderLeft: isAction ? '2px solid #34d399' : 'none'
+                  borderLeft: '3px solid #34d399'
                 }}>
-                  <span style={{ color: '#64748b', minWidth: '65px' }}>{log.message.substring(1, 9)}</span>
-                  <span style={{ color: '#e2e8f0' }}>{log.message.substring(11)}</span>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2px' }}>
+                    <span style={{ color: '#34d399', fontWeight: 700, fontSize: '12px' }}>{agent}</span>
+                    <span style={{ color: '#64748b', fontWeight: 600, fontSize: '11px' }}>{ts}</span>
+                  </div>
+                  
+                  {(payload.severity || payload.confidence) && (
+                    <div style={{ display: 'flex', gap: '16px', fontSize: '11px', color: '#94a3b8', fontWeight: 500, marginBottom: '4px' }}>
+                      {payload.severity && <span>Severity: <strong style={{color: payload.severity==='HIGH'?'#ef4444':'#f59e0b'}}>{payload.severity}</strong></span>}
+                      {payload.impact && <span>Passenger Impact: <strong>{payload.impact}</strong></span>}
+                      {payload.confidence && <span>Confidence: <strong>{payload.confidence}%</strong></span>}
+                    </div>
+                  )}
+                  
+                  <span style={{ color: '#e2e8f0', fontSize: '13px', lineHeight: '1.4' }}>{msg}</span>
                 </div>
               );
             })
@@ -970,28 +1076,32 @@ function MainApp() {
   const renderContent = () => {
     switch (activeTab) {
       case 'Dashboard':
+        const activeIncident = incidents.find(inc => inc.severity === 'critical' && inc.resolution_status !== 'resolved');
         return (
-          <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
-            <div style={{
-              display: 'flex',
-              flexDirection: 'column',
-              flex: 1,
-              borderRight: '1px solid #1a1e26',
-              backgroundColor: '#0b0d10'
-            }}>
-              <div style={{ flex: 1, position: 'relative', display: 'flex', flexDirection: 'column' }}>
-                <div style={{ flex: 1, position: 'relative' }}>
-                  <LiveMap trains={trains} />
+          <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
+            {activeIncident && <IncidentCommandCenter incident={activeIncident} />}
+            <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+              <div style={{
+                display: 'flex',
+                flexDirection: 'column',
+                flex: 1,
+                borderRight: '1px solid #1a1e26',
+                backgroundColor: '#0b0d10'
+              }}>
+                <div style={{ flex: 1, position: 'relative', display: 'flex', flexDirection: 'column' }}>
+                  <div style={{ flex: 1, position: 'relative' }}>
+                    <LiveMap trains={trains} />
+                  </div>
+                  <AgentFeedPanel />
                 </div>
-                <AgentFeedPanel />
+                <TaskBoard tasks={tasks} onResolve={handleResolve} />
               </div>
-              <TaskBoard tasks={tasks} onResolve={handleResolve} />
+              <IncidentFeed 
+                incidents={incidents} 
+                onApprove={handleApprove}
+                onAcknowledge={handleAcknowledge}
+              />
             </div>
-            <IncidentFeed 
-              incidents={incidents} 
-              onApprove={handleApprove}
-              onAcknowledge={handleAcknowledge}
-            />
           </div>
         );
 
