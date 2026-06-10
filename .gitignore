@@ -1,0 +1,58 @@
+# ──────────────────────────────────────────
+# RailMind .gitignore
+# ──────────────────────────────────────────
+
+# === Secrets & Credentials ===
+backend/.env
+*.env
+*.env.*
+!backend/.env.example
+!.env.example
+
+# === Python ===
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pyc
+.Python
+env/
+venv/
+.venv/
+ENV/
+*.egg
+*.egg-info/
+dist/
+build/
+*.so
+*.dylib
+.mypy_cache/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# === Node / Frontend ===
+node_modules/
+frontend/dist/
+frontend/build/
+frontend/.vite/
+frontend/node_modules/
+*.lock
+package-lock.json
+
+# === OS & Editor Files ===
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.idea/
+.vscode/settings.json
+.vscode/*.log
+
+# === Logs & Temp ===
+*.log
+*.tmp
+*.bak
+
+# === MongoDB local fallback data ===
+backend/data/*.json
