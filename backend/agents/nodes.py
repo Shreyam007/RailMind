@@ -215,7 +215,12 @@ async def reason_node(state: AgentState) -> AgentState:
         import time
         start_time = time.time()
         
-        result = await reason_with_ai(anomalies)
+        errors = state.get("errors", [])
+        try:
+            result = await reason_with_ai(anomalies, errors)
+        except Exception as ai_e:
+            logger.error(f"Reasoning API failed: {ai_e}")
+            result = {}
         
         latency = int((time.time() - start_time) * 1000)
         state["ai_latency_ms"] = latency
@@ -233,9 +238,29 @@ async def reason_node(state: AgentState) -> AgentState:
         await log_agent("reason_node", f"[RAILMIND] [ERROR] Reason node failed: {e}")
     return state
 
+from .routing import dijkstra_route_discovery
+
 async def reroute_node(state: AgentState) -> AgentState:
     try:
         await log_agent("reroute_node", "[RAILMIND] Checking and resolving rerouting options...")
+        anomalies = state.get("anomalies", [])
+        if anomalies:
+            anomaly = anomalies[0]
+            start_station = anomaly.get("current_station") or anomaly.get("location") or ""
+            target_station = anomaly.get("destination", "")
+
+            # Use fallback destination if none provided
+            if start_station == "Kanpur Central" and not target_station:
+                target_station = "Varanasi"
+
+            if start_station and target_station:
+                result = dijkstra_route_discovery(start_station, target_station)
+                if result["status"] == "Success":
+                    route_str = " -> ".join(result["route"])
+                    state["reroute_plan"] = f"Dijkstra routed: {route_str} (ETA {result['cost']} mins)"
+                    await log_agent("reroute_node", f"[RAILMIND] Route found: {route_str}")
+                else:
+                    await log_agent("reroute_node", "[RAILMIND] No viable detour found.")
     except Exception as e:
         logger.error(f"Error in reroute_node: {e}")
         await log_agent("reroute_node", f"[RAILMIND] [ERROR] Reroute node failed: {e}")
@@ -289,6 +314,8 @@ async def coordination_node(state: AgentState) -> AgentState:
         }
 
         department_tasks = [maintenance_task, operations_task, station_manager_task]
+        # Instead of replacing, we return it to let Annotated[..., operator.add] handle it, or we append directly
+        # LangGraph state update dictionary:
         state["department_tasks"] = department_tasks
 
         # Save to MongoDB
@@ -461,15 +488,69 @@ async def report_node(state: AgentState) -> AgentState:
         state["processed_trains"] = processed_trains
 
         # Reset state fields
-        state["anomalies"] = []
-        state["department_tasks"] = []
-        state["sms_alerts_sent"] = []
+        # For LangGraph annotated reducers, we can't easily clear lists by passing [] if it appends.
+        # But we can let the next graph invocation use a fresh initial state.
+        # So we just mark the next node.
         state["loop_count"] = state.get("loop_count", 0) + 1
+        state["next_node"] = "END"
 
-        import asyncio
-        await log_agent("report_node", "[RAILMIND] Sleeping for 10 seconds before next iteration...")
-        await asyncio.sleep(10)
+        # We don't sleep here in a real LangGraph flow, the streaming app handles it or the caller.
+        await log_agent("report_node", "[RAILMIND] Report node complete. Supervisor will transition to END.")
+
     except Exception as e:
         logger.error(f"Error in report_node: {e}")
         await log_agent("report_node", f"[RAILMIND] [ERROR] Report node failed: {e}")
+    return state
+
+async def supervisor_node(state: AgentState) -> AgentState:
+    try:
+        await log_agent("supervisor_node", "[RAILMIND] Supervisor evaluating graph state...")
+
+        anomalies = state.get("anomalies", [])
+        if not anomalies:
+            state["next_node"] = "END"
+            return state
+
+        # If reasoning hasn't happened or failed to produce plan
+        if not state.get("claude_reasoning") or state.get("claude_reasoning") == "{}":
+            state["next_node"] = "reason_node"
+            return state
+
+        # Self correction loop check
+        try:
+            reasoning = json.loads(state.get("claude_reasoning", "{}"))
+            maintenance = reasoning.get("maintenance_task", "")
+            if "Kanpur" in maintenance and "restricted" in maintenance.lower():
+                 # Mock conflict logic
+                 await log_agent("supervisor_node", "[RAILMIND] [WARNING] Conflict detected in maintenance task. Re-routing to Reasoner.")
+                 if "errors" not in state or state["errors"] is None:
+                     state["errors"] = []
+                 state["errors"] = ["Maintenance task conflicts with active line configurations at Kanpur."]
+                 state["claude_reasoning"] = "{}" # clear to force re-reason
+                 state["next_node"] = "reason_node"
+                 return state
+        except Exception:
+            pass
+
+        if not state.get("reroute_plan"):
+             state["next_node"] = "reroute_node"
+             return state
+
+        # If tasks not generated
+        if not state.get("department_tasks"):
+            state["next_node"] = "coordination_node"
+            return state
+
+        # If alerts not sent
+        if not state.get("sms_alerts_sent") and len(state.get("department_tasks", [])) > 0:
+            state["next_node"] = "alert_node"
+            return state
+
+        # Otherwise report and finish
+        state["next_node"] = "report_node"
+
+    except Exception as e:
+         logger.error(f"Error in supervisor_node: {e}")
+         await log_agent("supervisor_node", f"[RAILMIND] [ERROR] Supervisor node failed: {e}")
+         state["next_node"] = "END"
     return state

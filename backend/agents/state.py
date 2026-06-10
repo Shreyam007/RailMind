@@ -1,6 +1,13 @@
 from typing import TypedDict, List, Optional, Annotated
 import operator
 
+def append_to_list(a: List, b: List) -> List:
+    if a is None:
+        a = []
+    if b is None:
+        b = []
+    return a + b
+
 class TrainAnomaly(TypedDict):
     train_number: str
     train_name: str
@@ -18,11 +25,11 @@ class DepartmentTask(TypedDict):
 
 class AgentState(TypedDict):
     raw_train_data: List[dict]
-    anomalies: List[TrainAnomaly]
+    anomalies: Annotated[List[TrainAnomaly], append_to_list]
     claude_reasoning: str
     reroute_plan: Optional[str]
-    department_tasks: List[DepartmentTask]
-    sms_alerts_sent: List[str]
+    department_tasks: Annotated[List[DepartmentTask], append_to_list]
+    sms_alerts_sent: Annotated[List[str], append_to_list]
     incident_report: Optional[str]
     loop_count: int
     should_continue: bool
@@ -30,4 +37,7 @@ class AgentState(TypedDict):
     railways_latency_ms: int
     ai_latency_ms: int
     processed_trains: List[str]
-
+    errors: Annotated[List[str], append_to_list]
+    next_node: str
+    messages: Annotated[list, operator.add]
+    tools_used: Annotated[List[str], append_to_list]

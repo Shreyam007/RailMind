@@ -78,7 +78,10 @@ async def run_agent_loop():
                 processed_trains=latest_agent_state.get("processed_trains", [])
             )
             # Invoke graph using ainvoke
-            result = await railmind_graph.ainvoke(initial_state)
+            import uuid
+            thread_id = f"api_main_{latest_agent_state.get('loop_count', 0)}"
+            config = {"configurable": {"thread_id": thread_id}, "recursion_limit": 20}
+            result = await railmind_graph.ainvoke(initial_state, config)
             
             # Increment loop count on successful iteration
             if result:
