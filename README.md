@@ -117,7 +117,7 @@ RailMind operates on an autonomous LangGraph pipeline, pulling telemetry, analyz
 ### 1. Clone & Configuration
 Clone the repository to your machine:
 ```bash
-git clone https://github.com/your-username/RailMind.git
+git clone https://github.com/Shreyam007/RailMind.git
 cd RailMind/railmind
 ```
 
@@ -189,5 +189,14 @@ Access the live deployment: **[TO BE FILLED]**
 ---
 
 ## 👥 Team
-- **Shreyam** - Lead System Architect & AI Engineer
-- **Antigravity** - Co-Pilot & Coding Assistant
+
+> **Team Name:** `nitishrg.8220psgps2020`
+> **Institution:** PSG College of Technology, Coimbatore
+
+| # | Name | Role |
+| :---: | :--- | :--- |
+| 1 | **Nitish R G** 👑 | Team Leader |
+| 2 | **Prithic P** | Member |
+| 3 | **Shreyam Pandey** | Member |
+| 4 | **Padmanabhan SureshBabu** | Member |
+| 5 | **Aswin R** | Member |
