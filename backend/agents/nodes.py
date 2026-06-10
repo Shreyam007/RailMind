@@ -513,7 +513,6 @@ async def report_node(state: AgentState) -> AgentState:
         state["sms_alerts_sent"] = []
         state["loop_count"] = state.get("loop_count", 0) + 1
 
-        import asyncio
         await log_agent("Report Agent", "Cycle complete. Awaiting next telemetry ingestion.")
     except Exception as e:
         logger.error(f"Error in report_node: {e}")

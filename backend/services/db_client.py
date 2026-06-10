@@ -13,7 +13,11 @@ load_dotenv(dotenv_path=env_path)
 
 # Real MongoDB Atlas Connection for RailMind
 MONGODB_URI = os.getenv("MONGODB_URI")
-client = AsyncIOMotorClient(MONGODB_URI)
+client = AsyncIOMotorClient(
+    MONGODB_URI,
+    serverSelectionTimeoutMS=2000,
+    connectTimeoutMS=2000
+)
 db = client["railmind"]
 
 # Collections needed:

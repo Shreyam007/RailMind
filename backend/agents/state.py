@@ -30,4 +30,5 @@ class AgentState(TypedDict):
     railways_latency_ms: int
     ai_latency_ms: int
     processed_trains: List[str]
+    simulate_hero: bool
 
