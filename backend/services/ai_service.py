@@ -39,6 +39,12 @@ class MitigationPlan(BaseModel):
     passenger_sms: str
     incident_summary: str
 
+tools = [query_line_capacity, check_weather_grids, review_historical_incidents]
+llm = ChatAnthropic(model="claude-3-5-sonnet-20241022", max_tokens=1024)
+llm_with_tools = llm.bind_tools(tools)
+structured_llm = llm.with_structured_output(MitigationPlan)
+tool_map = {tool.name: tool for tool in tools}
+
 async def reason_with_ai(anomalies: list, errors: list = None) -> dict:
     if not anomalies:
         return {}
@@ -78,16 +84,10 @@ Previous errors from Supervisor (if any, please correct your plan):
 {json.dumps(errors)}
 """
 
-    tools = [query_line_capacity, check_weather_grids, review_historical_incidents]
-    llm = ChatAnthropic(model="claude-3-5-sonnet-20241022", max_tokens=1024)
-    llm_with_tools = llm.bind_tools(tools)
-
     messages = [
         SystemMessage(content=system_prompt),
         HumanMessage(content=user_prompt)
     ]
-
-    tool_map = {tool.name: tool for tool in tools}
 
     # Explicit tool-calling loop
     for i in range(5): # Max 5 steps

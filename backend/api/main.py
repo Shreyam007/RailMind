@@ -79,7 +79,7 @@ async def run_agent_loop():
             )
             # Invoke graph using ainvoke
             import uuid
-            thread_id = f"api_main_{latest_agent_state.get('loop_count', 0)}"
+            thread_id = f"api_main_{latest_agent_state.get('loop_count', 0)}_{uuid.uuid4().hex[:8]}"
             config = {"configurable": {"thread_id": thread_id}, "recursion_limit": 20}
             result = await railmind_graph.ainvoke(initial_state, config)
             

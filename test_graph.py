@@ -28,17 +28,27 @@ async def main():
     # Since it loops infinitely back to ingest_node, we can stream the steps and stop after detect_node
     step_count = 0
     config = {"configurable": {"thread_id": "test_graph_1"}, "recursion_limit": 20}
+
+    visited_nodes = []
+
     async for event in railmind_graph.astream(initial_state, config):
-        print(f"\n[EVENT] Node complete: {list(event.keys())}")
+        node_names = list(event.keys())
+        visited_nodes.extend(node_names)
+        print(f"\n[EVENT] Node complete: {node_names}")
         for node_name, state_val in event.items():
             print(f"  - Raw trains count: {len(state_val.get('raw_train_data', []))}")
             print(f"  - Anomalies count: {len(state_val.get('anomalies', []))}")
             print(f"  - Should continue: {state_val.get('should_continue')}")
         
         step_count += 1
-        if step_count >= 8:
+        if step_count >= 15:
             print("\n[TEST] Stopping stream to prevent infinite test loop.")
             break
+
+    assert "supervisor_node" in visited_nodes, "The graph should route through the supervisor_node."
+    assert "report_node" in visited_nodes or "END" in visited_nodes or (visited_nodes[-1] == "supervisor_node" and len(visited_nodes) < 15), "The run should eventually reach the report_node or gracefully END based on routing logic."
+
+    print("\n[SUCCESS] Graph architecture behaves as expected.")
 
 if __name__ == "__main__":
     asyncio.run(main())

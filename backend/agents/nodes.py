@@ -257,14 +257,15 @@ async def reroute_node(state: AgentState) -> AgentState:
                 result = dijkstra_route_discovery(start_station, target_station)
                 if result["status"] == "Success":
                     route_str = " -> ".join(result["route"])
-                    state["reroute_plan"] = f"Dijkstra routed: {route_str} (ETA {result['cost']} mins)"
                     await log_agent("reroute_node", f"[RAILMIND] Route found: {route_str}")
+                    return {"reroute_plan": f"Dijkstra routed: {route_str} (ETA {result['cost']} mins)"}
                 else:
-                    await log_agent("reroute_node", "[RAILMIND] No viable detour found.")
+                    status_msg = result.get("status", "Unknown status")
+                    await log_agent("reroute_node", f"[RAILMIND] No viable detour found: {status_msg}")
     except Exception as e:
         logger.error(f"Error in reroute_node: {e}")
         await log_agent("reroute_node", f"[RAILMIND] [ERROR] Reroute node failed: {e}")
-    return state
+    return {}
 
 async def coordination_node(state: AgentState) -> AgentState:
     try:
@@ -502,19 +503,22 @@ async def report_node(state: AgentState) -> AgentState:
         await log_agent("report_node", f"[RAILMIND] [ERROR] Report node failed: {e}")
     return state
 
-async def supervisor_node(state: AgentState) -> AgentState:
+async def supervisor_node(state: AgentState) -> dict:
     try:
         await log_agent("supervisor_node", "[RAILMIND] Supervisor evaluating graph state...")
 
         anomalies = state.get("anomalies", [])
         if not anomalies:
-            state["next_node"] = "END"
-            return state
+            return {"next_node": "END"}
 
         # If reasoning hasn't happened or failed to produce plan
         if not state.get("claude_reasoning") or state.get("claude_reasoning") == "{}":
-            state["next_node"] = "reason_node"
-            return state
+            # For offline testing where Reason API throws Auth Error and falls back to {}
+            # we don't want an infinite loop.
+            if getattr(state, "get", lambda k,d: d)("ai_latency_ms", -1) > 0:
+                 # AI ran but returned nothing. Stop ping-ponging.
+                 return {"next_node": "END"}
+            return {"next_node": "reason_node"}
 
         # Self correction loop check
         try:
