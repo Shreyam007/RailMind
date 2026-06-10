@@ -19,6 +19,7 @@ from ..agents.state import AgentState # type: ignore
 from ..services.railways_api import RailwaysAPIClient
 
 agent_wakeup_event = asyncio.Event()
+hero_lock = asyncio.Lock()
 
 app = FastAPI(
     title="RailMind Operations API",
@@ -89,6 +90,11 @@ async def run_agent_loop():
                 result["loop_count"] = result.get("loop_count", 0) + 1
                 # Sync to global object
                 latest_agent_state.update(result)
+                
+                # Reset hero mode after graph completes a full isolated cycle
+                if latest_agent_state.get("simulate_hero"):
+                    print("[RAILMIND] Hero scenario cycle complete. Resetting hero lock.")
+                    latest_agent_state["simulate_hero"] = False
         except Exception as e:
             print(f"[RAILMIND] Agent loop error: {e}")
         finally:
@@ -105,11 +111,6 @@ async def startup_event():
         from ..services.db_client import client, db
         await client.admin.command('ping')
         print("[RAILMIND] MongoDB Atlas connected [OK]")
-        
-        # Cleanup incidents and tasks
-        await db.incidents.delete_many({})
-        await db.department_tasks.delete_many({})
-        print("[RAILMIND] Cleared MongoDB incidents and tasks collections [OK]")
     except Exception as e:
         print(f"[RAILMIND] MongoDB connection/cleanup failed: {e}")
 
@@ -195,9 +196,30 @@ async def approve_incident_api(id: str):
 # REST Endpoint: POST /api/simulate-hero - Trigger hero scenario
 @app.post("/api/simulate-hero")
 async def simulate_hero_api():
-    latest_agent_state["simulate_hero"] = True
-    agent_wakeup_event.set()
-    return {"status": "hero_scenario_activated"}
+    async with hero_lock:
+        if latest_agent_state.get("simulate_hero"):
+            return {"status": "hero_scenario_already_in_progress", "message": "Hero scenario already active"}
+
+        # Automatic Demo Cleanup (Issue 4 Modification 3)
+        try:
+            from ..services.db_client import db_client
+            if not db_client.use_fallback:
+                await db_client.db.incidents.delete_many({})
+                await db_client.db.department_tasks.delete_many({})
+            else:
+                db_client._write_fallback({"incidents": [], "department_tasks": []})
+            
+            latest_agent_state["loop_count"] = 0
+            latest_agent_state["anomalies"] = []
+            latest_agent_state["department_tasks"] = []
+            latest_agent_state["processed_trains"] = [] # Fix priority 1
+            print("[RAILMIND] Automatic demo cleanup successful. Starting hero scenario.")
+        except Exception as e:
+            print(f"[RAILMIND] Demo cleanup warning: {e}")
+
+        latest_agent_state["simulate_hero"] = True
+        agent_wakeup_event.set()
+        return {"status": "hero_scenario_activated"}
 
 # REST Endpoint: GET /api/system-status -> returns all system statuses
 @app.get("/api/system-status")
@@ -254,7 +276,8 @@ async def get_telemetry_api():
         "ai_latency_ms": latest_agent_state.get("ai_latency_ms", 0),
         "websocket_clients": len(websocket_manager.active_connections),
         "mongodb_incidents": incident_count,
-        "mongodb_tasks": task_count
+        "mongodb_tasks": task_count,
+        "is_hero_running": latest_agent_state.get("simulate_hero", False)
     }
 
 if __name__ == "__main__":
