@@ -1,7 +1,7 @@
 from typing import TypedDict, List, Optional, Annotated
 import operator
 
-def append_to_list(a: List, b: List) -> List:
+def append_to_list(a: Optional[List], b: Optional[List]) -> List:
     if a is None:
         a = []
     if b is None:

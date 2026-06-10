@@ -1,6 +1,7 @@
 import os
 import json
 import logging
+import traceback
 from dotenv import load_dotenv
 from typing import Dict, Any, List
 from uuid import uuid4
@@ -219,7 +220,7 @@ async def reason_node(state: AgentState) -> AgentState:
         try:
             result = await reason_with_ai(anomalies, errors)
         except Exception as ai_e:
-            logger.error(f"Reasoning API failed: {ai_e}")
+            logger.exception("Reasoning API failed")
             result = {}
         
         latency = int((time.time() - start_time) * 1000)
@@ -262,6 +263,7 @@ async def reroute_node(state: AgentState) -> AgentState:
                 else:
                     status_msg = result.get("status", "Unknown status")
                     await log_agent("reroute_node", f"[RAILMIND] No viable detour found: {status_msg}")
+                    state["reroute_plan"] = f"No reroute available: {status_msg}"
     except Exception as e:
         logger.error(f"Error in reroute_node: {e}")
         await log_agent("reroute_node", f"[RAILMIND] [ERROR] Reroute node failed: {e}")
@@ -529,12 +531,15 @@ async def supervisor_node(state: AgentState) -> dict:
                  await log_agent("supervisor_node", "[RAILMIND] [WARNING] Conflict detected in maintenance task. Re-routing to Reasoner.")
                  if "errors" not in state or state["errors"] is None:
                      state["errors"] = []
-                 state["errors"] = ["Maintenance task conflicts with active line configurations at Kanpur."]
+                 state["errors"].append("Maintenance task conflicts with active line configurations at Kanpur.")
                  state["claude_reasoning"] = "{}" # clear to force re-reason
                  state["next_node"] = "reason_node"
                  return state
+        except json.JSONDecodeError as e:
+            logger.warning("JSON parse failed: %s", e)
         except Exception:
-            pass
+            logger.exception("Unexpected error in supervisor self-correction logic")
+            raise
 
         if not state.get("reroute_plan"):
              state["next_node"] = "reroute_node"
@@ -554,7 +559,8 @@ async def supervisor_node(state: AgentState) -> dict:
         state["next_node"] = "report_node"
 
     except Exception as e:
-         logger.error(f"Error in supervisor_node: {e}")
-         await log_agent("supervisor_node", f"[RAILMIND] [ERROR] Supervisor node failed: {e}")
+         logger.exception("Error in supervisor_node")
+         tb = traceback.format_exc()
+         await log_agent("supervisor_node", f"[RAILMIND] [ERROR] Supervisor node failed: {e}\n{tb}")
          state["next_node"] = "END"
     return state

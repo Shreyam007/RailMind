@@ -9,10 +9,11 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from backend.agents.graph import railmind_graph # type: ignore
 from backend.agents.state import AgentState # type: ignore
 
-os.environ["ANTHROPIC_API_KEY"] = "sk-ant-dummy"
-
 async def main():
     print("--- Running Agentic Recovery and self-correction unit tests ---")
+
+    # Set API key in test scope
+    os.environ["ANTHROPIC_API_KEY"] = "sk-ant-dummy"
 
     from backend.agents.nodes import supervisor_node
 
@@ -55,11 +56,11 @@ async def main():
     print(f"[SUCCESS] Supervisor correctly appended errors: {errors}")
     print(f"[INFO] New Claude Reasoning: {state.get('claude_reasoning')}")
 
-if __name__ == "__main__":
-    asyncio.run(main())
-
 async def test_tool_exception_recovery():
     print("\n--- Running Tool Exception Recovery Test ---")
+
+    # Set API key in test scope
+    os.environ["ANTHROPIC_API_KEY"] = "sk-ant-dummy"
 
     from unittest.mock import patch, MagicMock, AsyncMock
     from langchain_core.messages import AIMessage, ToolMessage
@@ -113,4 +114,5 @@ async def test_tool_exception_recovery():
     print("[SUCCESS] Tool Exception Recovery executed successfully through mock.")
 
 if __name__ == "__main__":
+    asyncio.run(main())
     asyncio.run(test_tool_exception_recovery())

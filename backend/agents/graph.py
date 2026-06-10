@@ -1,5 +1,6 @@
 from langgraph.graph import StateGraph, END  # type: ignore
-from langgraph.checkpoint.memory import MemorySaver # type: ignore
+from langgraph.checkpoint.sqlite import SqliteSaver # type: ignore
+import os
 from .state import AgentState  # type: ignore
 from .nodes import (  # type: ignore
     ingest_node, detect_node, reason_node,
@@ -49,5 +50,6 @@ workflow.add_conditional_edges(
     }
 )
 
-memory = MemorySaver()
-railmind_graph = workflow.compile(checkpointer=memory)
+db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "checkpoints.db")
+checkpointer = SqliteSaver.from_conn_string(db_path)
+railmind_graph = workflow.compile(checkpointer=checkpointer)
