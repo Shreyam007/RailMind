@@ -194,6 +194,8 @@ async def get_system_status():
         mongo_status = "Connected"
     except Exception as e:
         print(f"Error checking MongoDB status: {e}")
+        print(f"Error pinging MongoDB in get_system_status: {e}")
+        mongo_status = f"Disconnected ({str(e)})"
 
     # Railways API
     railways_api_key = os.getenv("RAILWAYS_API_KEY", "")
@@ -231,6 +233,7 @@ async def get_telemetry_api():
         task_count = await db["department_tasks"].count_documents({})
     except Exception as e:
         print(f"Error fetching telemetry metrics: {e}")
+        print(f"Error fetching telemetry from MongoDB: {e}")
 
     return {
         "agent_loop_status": "running",
