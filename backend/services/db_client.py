@@ -82,8 +82,8 @@ class FallbackDB:
                         ts = datetime.fromisoformat(str(ts_str))
                     if ts > cutoff:
                         return True
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.warning(f"Failed to parse timestamp '{ts_str}': {e}")
         return False
 
     async def insert_incident(self, incident):
