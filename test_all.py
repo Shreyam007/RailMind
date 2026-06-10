@@ -119,10 +119,12 @@ async def run_tests():
     # Try Gemini 2.0 Flash first
     if gemini_key and gemini_key != "mock_key":
         try:
-            import google.generativeai as genai # type: ignore
-            genai.configure(api_key=gemini_key)
-            model = genai.GenerativeModel("gemini-2.0-flash")
-            response = await model.generate_content_async("Say RAILMIND_OK if you can hear me")
+            from google import genai # type: ignore
+            client = genai.Client(api_key=gemini_key)
+            response = await client.aio.models.generate_content(
+                model="gemini-2.0-flash",
+                contents="Say RAILMIND_OK if you can hear me"
+            )
             response_text = response.text.strip()
             if "RAILMIND_OK" in response_text:
                 print("  [OK] Gemini 2.0 Flash API working (Primary)\n")
