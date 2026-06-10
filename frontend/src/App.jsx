@@ -61,15 +61,24 @@ class ErrorBoundary extends React.Component {
 }
 
 function MainApp() {
+  const readStoredState = (key, fallback) => {
+    try {
+      const value = localStorage.getItem(key);
+      return value ? JSON.parse(value) : fallback;
+    } catch {
+      return fallback;
+    }
+  };
+
   const [activeTab, setActiveTab] = useState('Dashboard');
   const [loopCount, setLoopCount] = useState(0);
   const [incidentCount, setIncidentCount] = useState(0);
-  const [incidents, setIncidents] = useState([]);
+  const [incidents, setIncidents] = useState(() => readStoredState('railmind_incidents', []));
   const [tasks, setTasks] = useState([]);
   const [trains, setTrains] = useState([]);
   const [wsStatus, setWsStatus] = useState('reconnecting');
-  const [logs, setLogs] = useState([]);
-  const [isHeroRunning, setIsHeroRunning] = useState(false);
+  const [logs, setLogs] = useState(() => readStoredState('railmind_logs', []));
+  const [isHeroRunning, setIsHeroRunning] = useState(() => readStoredState('railmind_hero_running', false));
   
   // Modal Overlay States
   const [showSettings, setShowSettings] = useState(false);
@@ -135,10 +144,36 @@ function MainApp() {
     }
   };
 
+  const fetchHeroStatus = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/api/telemetry`);
+      if (res.ok) {
+        const data = await res.json();
+        setIsHeroRunning(Boolean(data.is_hero_running));
+      }
+    } catch (err) {
+      console.error("[API] Failed to sync hero status:", err);
+    }
+  };
+
+  useEffect(() => {
+    localStorage.setItem('railmind_logs', JSON.stringify(logs.slice(-200)));
+  }, [logs]);
+
+  useEffect(() => {
+    localStorage.setItem('railmind_incidents', JSON.stringify(incidents.slice(0, 20)));
+    setIncidentCount(incidents.length);
+  }, [incidents]);
+
+  useEffect(() => {
+    localStorage.setItem('railmind_hero_running', JSON.stringify(isHeroRunning));
+  }, [isHeroRunning]);
+
   useEffect(() => {
     fetchIncidents();
     fetchTrains();
     fetchTasks();
+    fetchHeroStatus();
 
     const wsUrl = `ws://${window.location.hostname}:8000/ws`;
     let socket;
@@ -152,6 +187,10 @@ function MainApp() {
       socket.onopen = () => {
         console.log("[WEBSOCKET] Connected to RailMind WebSocket server");
         setWsStatus('connected');
+        fetchIncidents();
+        fetchTrains();
+        fetchTasks();
+        fetchHeroStatus();
       };
 
       socket.onmessage = (event) => {
@@ -187,7 +226,6 @@ function MainApp() {
               if (prev.some(inc => inc.id === newIncident.id)) return prev;
               return [newIncident, ...prev];
             });
-            setIncidentCount(prev => prev + 1);
             if (report.loop_count !== undefined) {
               setLoopCount(report.loop_count);
             }
@@ -274,10 +312,7 @@ function MainApp() {
   };
 
   const triggerHeroScenario = async () => {
-    if (isHeroRunning) {
-      alert("Hero scenario already active");
-      return;
-    }
+    if (isHeroRunning) return;
     
     // Clear frontend state immediately
     setIncidents([]);
@@ -290,7 +325,9 @@ function MainApp() {
       const res = await fetch(`${API_BASE}/api/simulate-hero`, { method: 'POST' });
       const data = await res.json();
       if (data.status === 'hero_scenario_already_in_progress') {
-        alert("Hero scenario already active");
+        setIsHeroRunning(true);
+      } else if (!res.ok) {
+        setIsHeroRunning(false);
       }
     } catch (err) {
       console.error("Failed to trigger hero scenario:", err);
@@ -989,6 +1026,17 @@ function MainApp() {
 
   const AgentFeedPanel = () => {
     const logEndRef = useRef(null);
+    const [thinkingDots, setThinkingDots] = useState(1);
+    const latestLog = logs[logs.length - 1];
+    const latestPayload = latestLog?.data || {};
+    const isReasoning = latestPayload.agent === 'Reasoning Agent'
+      && String(latestPayload.message || '').startsWith('Analyzing ');
+
+    useEffect(() => {
+      if (!isReasoning) return;
+      const interval = setInterval(() => setThinkingDots(dots => dots % 3 + 1), 450);
+      return () => clearInterval(interval);
+    }, [isReasoning]);
 
     useEffect(() => {
       if (logEndRef.current) {
@@ -1039,7 +1087,14 @@ function MainApp() {
               const payload = log.data || {};
               const ts = payload.timestamp || log.message?.substring(1,9) || "";
               const agent = payload.agent || "System";
-              const msg = payload.message || log.message || "";
+              const isActiveReasoningLog = idx === logs.length - 1
+                && agent === 'Reasoning Agent'
+                && String(payload.message || '').startsWith('Analyzing ');
+              const msg = payload.message === 'Reasoning Complete'
+                ? '✅ Reasoning Complete'
+                : isActiveReasoningLog
+                  ? `🧠 Reasoning Agent Analyzing Incident${'.'.repeat(thinkingDots)}`
+                  : payload.message || log.message || "";
               
               return (
                 <div key={idx} style={{ 

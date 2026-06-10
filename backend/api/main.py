@@ -264,8 +264,13 @@ async def get_telemetry_api():
     task_count = 0
     try:
         from ..services.db_client import db
-        incident_count = await db["incidents"].count_documents({})
-        task_count = await db["department_tasks"].count_documents({})
+        incident_count, task_count = await asyncio.wait_for(
+            asyncio.gather(
+                db["incidents"].count_documents({}),
+                db["department_tasks"].count_documents({})
+            ),
+            timeout=1.0
+        )
     except Exception:
         pass
 

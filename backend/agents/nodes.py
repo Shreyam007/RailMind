@@ -262,6 +262,7 @@ async def reason_node(state: AgentState) -> AgentState:
             conf_val = int(confidence_str.replace('%', '')) if '%' in confidence_str else 92
             
             await log_agent("Reasoning Agent", result.get('situation_summary', 'Anomaly analyzed.'), severity=result.get('risk_score', 'HIGH').upper(), confidence=conf_val, impact=2843)
+            await log_agent("Reasoning Agent", "Reasoning Complete", severity="COMPLETE", confidence=conf_val, impact=2843)
         else:
             state["claude_reasoning"] = "{}"
             await log_agent("Reasoning Agent", "AI reasoning degraded — using fallback operational protocols")
