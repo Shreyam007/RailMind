@@ -192,8 +192,10 @@ async def get_system_status():
         from ..services.db_client import client
         await client.admin.command('ping')
         mongo_status = "Connected"
-    except Exception:
-        pass
+    except Exception as e:
+        print(f"Error checking MongoDB status: {e}")
+        print(f"Error pinging MongoDB in get_system_status: {e}")
+        mongo_status = f"Disconnected ({str(e)})"
 
     # Railways API
     railways_api_key = os.getenv("RAILWAYS_API_KEY", "")
@@ -229,8 +231,9 @@ async def get_telemetry_api():
         from ..services.db_client import db
         incident_count = await db["incidents"].count_documents({})
         task_count = await db["department_tasks"].count_documents({})
-    except Exception:
-        pass
+    except Exception as e:
+        print(f"Error fetching telemetry metrics: {e}")
+        print(f"Error fetching telemetry from MongoDB: {e}")
 
     return {
         "agent_loop_status": "running",
