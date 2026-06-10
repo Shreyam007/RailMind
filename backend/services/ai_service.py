@@ -1,5 +1,3 @@
-from google import genai # type: ignore
-import os
 import json
 import os
 from pydantic import BaseModel, Field
@@ -42,9 +40,6 @@ class MitigationPlan(BaseModel):
     incident_summary: str
 
 async def reason_with_ai(anomalies: list, errors: list = None) -> dict:
-# Configure Gemini API key
-client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
-async def reason_with_ai(anomalies: list) -> dict:
     if not anomalies:
         return {}
 
@@ -117,23 +112,6 @@ Previous errors from Supervisor (if any, please correct your plan):
     try:
         final_plan: MitigationPlan = await structured_llm.ainvoke(messages)
         return final_plan.dict()
-        response = await client.aio.models.generate_content(
-            model="gemini-2.0-flash",
-            contents=prompt
-        )
-        text = response.text.strip()
-        text = text.replace("```json", "").replace("```", "").strip()
-        result = json.loads(text)
-        # Verify required keys exist
-        required_keys = ["incident_title", "situation_summary", "reroute_plan", "maintenance_task", 
-                         "operations_task", "station_manager_task", "passenger_sms", "incident_summary"]
-        for key in required_keys:
-            if key not in result:
-                result[key] = fallback_response[key]
-        return result
-    except json.JSONDecodeError:
-        print("[RAILMIND] Gemini JSON parse failed, using fallback")
-        return fallback_response
     except Exception as e:
         print(f"[RAILMIND] LLM failed to produce structured output: {e}")
         return {

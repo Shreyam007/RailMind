@@ -9,4 +9,3 @@ python-dotenv
 twilio
 httpx
 websockets
-google-genai

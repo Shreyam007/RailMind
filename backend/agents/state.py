@@ -1,4 +1,5 @@
-from typing import TypedDict, List, Optional
+from typing import TypedDict, List, Optional, Annotated
+import operator
 
 def append_to_list(a: List, b: List) -> List:
     if a is None:

@@ -120,28 +120,6 @@ STATION_COORDS = {
     "DBRG": {"lat": 27.4728, "lng": 95.0152, "name": "Dibrugarh"},
 }
 
-def _determine_passenger_load(delay_minutes: int) -> str:
-    if delay_minutes == 0:
-        return "normal"
-    if delay_minutes <= 15:
-        return "medium"
-    if delay_minutes <= 30:
-        return "high"
-    return "overcrowded"
-
-def _determine_status(delay_minutes: int, title: str = "") -> str:
-    status = "on_time"
-    if delay_minutes > 60:
-        status = "severely_delayed"
-    elif delay_minutes > 15:
-        status = "delayed"
-
-    title_lower = str(title).lower()
-    if "complete" in title_lower or "reached" in title_lower:
-        status = "reached"
-
-    return status
-
 def parse_rapidapi_train_for_agent(data: dict, train_number: str) -> dict:
     outer_data = data.get("data", {})
     if not outer_data:
@@ -162,10 +140,25 @@ def parse_rapidapi_train_for_agent(data: dict, train_number: str) -> dict:
         delay_minutes = int(outer_data.get("delay", 0))
     except:
         pass
+
+    if delay_minutes == 0:
+        passenger_load = "normal"
+    elif delay_minutes <= 15:
+        passenger_load = "medium"
+    elif delay_minutes <= 30:
+        passenger_load = "high"
+    else:
+        passenger_load = "overcrowded"
+
+    status = "on_time"
+    if delay_minutes > 60:
+        status = "severely_delayed"
+    elif delay_minutes > 15:
+        status = "delayed"
         
-    title = str(outer_data.get("title", ""))
-    passenger_load = _determine_passenger_load(delay_minutes)
-    status = _determine_status(delay_minutes, title)
+    title = str(outer_data.get("title", "")).lower()
+    if "complete" in title or "reached" in title:
+        status = "reached"
         
     lat = coords["lat"]
     lng = coords["lng"]
@@ -633,8 +626,14 @@ def parse_train_for_agent(data: dict, train_number: str) -> dict:
     except:
         delay_minutes = 0
     
-    passenger_load = _determine_passenger_load(delay_minutes)
-    status = _determine_status(delay_minutes)
+    if delay_minutes == 0: passenger_load = "normal"
+    elif delay_minutes <= 15: passenger_load = "medium"
+    elif delay_minutes <= 30: passenger_load = "high"
+    else: passenger_load = "overcrowded"
+
+    if delay_minutes > 60: status = "severely_delayed"
+    elif delay_minutes > 15: status = "delayed"
+    else: status = "on_time"
     
     station_code = current.get("StationCode", "NDLS")
     coords = STATION_COORDS.get(station_code, {"lat": 20.5937, "lng": 78.9629, "name": "Unknown"})
