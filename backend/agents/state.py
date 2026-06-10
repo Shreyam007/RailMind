@@ -1,5 +1,4 @@
-from typing import TypedDict, List, Optional, Annotated
-import operator
+from typing import TypedDict, List, Optional
 
 class TrainAnomaly(TypedDict):
     train_number: str
