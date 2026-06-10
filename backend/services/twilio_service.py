@@ -76,11 +76,17 @@ class TwilioSMSClient:
             return "SMdemo1234567890abcdef"
         try:
             if self.client:
-                msg = self.client.messages.create(
-                    body=message_body[:160],
-                    from_=self.from_number,
-                    to=to_number
-                )
+                import asyncio
+                
+                def sync_send():
+                    return self.client.messages.create(
+                        body=message_body[:160],
+                        from_=self.from_number,
+                        to=to_number
+                    )
+                
+                # Priority 4 - Wrap Twilio blocking call in thread with timeout
+                msg = await asyncio.wait_for(asyncio.to_thread(sync_send), timeout=5.0)
                 print(f"[RAILMIND] SMS sent via TwilioSMSClient to {to_number}: {msg.sid}")
                 return msg.sid
             else:
