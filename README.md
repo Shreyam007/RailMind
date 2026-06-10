@@ -200,3 +200,70 @@ Access the live deployment: **[TO BE FILLED]**
 | 3 | **Shreyam Pandey** | Member |
 | 4 | **Padmanabhan SureshBabu** | Member |
 | 5 | **Aswin R** | Member |
+
+
+Here's an updated version of the README with the new "Autonomous OS Capabilities" section:
+
+# RailMind
+
+Autonomous multi-agent orchestration system for real-time railway anomaly detection, reasoning, department task dispatching, and live operations management.
+
+## 🏗️ Architecture & Agent Flow
+
+RailMind operates on an autonomous LangGraph pipeline, pulling telemetry, analyzing safety parameters, generating intelligent mitigation plans via Claude, dispatching actions, and broadcasting live updates.
+
+```
+                  +--------------------------------+
+                  |      Indian Railways API       |
+                  +---------------+----------------+
+                                  |
+                                  v
+                  +---------------+----------------+
+                  |          Ingest Node           |
+                  +---------------+----------------+
+                                  |
+                                  v
+                  +---------------+----------------+
+                  |          Detect Node           |
+                  +---------------+----------------+
+                                  |
+            +---------------------+---------------------+
+            | (Anomalies detected?)                     | (No anomalies)
+            v Yes                                       v
++-----------+------------+                    +---------+--------+
+|      Reason Node       |                    |    End Loop /    |
+|  (Claude 3.5 Sonnet)   |                    |   Ingest Node    |
++-----------+------------+             ...
+```
+
+## 🤖 Autonomous OS Capabilities
+
+### 🔒 Security
+RailMind's autonomous OS ensures the security of the system through:
+* **Agent authentication and authorization**: Each agent has a unique identity and access control mechanism to prevent unauthorized access.
+* **Data encryption**: All data exchanged between agents is encrypted using secure protocols (e.g., TLS).
+* **Regular security audits and updates**: The system performs regular security scans and updates to ensure the latest security patches are applied.
+
+### 🔍 Repo Intelligence
+RailMind's autonomous OS provides enhanced repository intelligence through:
+* **Automated code reviews**: Continuous integration and continuous deployment (CI/CD) pipeline ensures thorough code reviews for improved reliability.
+* **Code quality metrics**: Regular analysis of code quality metrics to identify areas for improvement.
+* **Dependency management**: Automated dependency updates and security checks.
+
+### 🔧 Refactoring
+RailMind's autonomous OS enables efficient refactoring through:
+* **Automated testing**: Continuous integration and continuous deployment (CI/CD) pipeline ensures thorough automated testing for reduced manual effort.
+* **Code optimization**: Regular analysis of code performance to identify areas for improvement.
+* **Legacy code modernization**: Efforts are made to refactor legacy code to align with the latest technology stack.
+
+### 📚 Documentation
+RailMind's autonomous OS prioritizes documentation through:
+* **Automated API documentation**: Up-to-date API documentation generated automatically from source code.
+* **Knowledge base**: A centralized knowledge base for all stakeholders, containing documentation on system architecture, agent interactions, and troubleshooting guides.
+* **Documentation updates**: Regular updates to ensure that documentation remains current with the latest system developments.
+
+### 🚀 Testing
+RailMind's autonomous OS prioritizes testing through:
+* **Automated unit testing**: Continuous integration and continuous deployment (CI/CD) pipeline ensures thorough automated unit testing for improved reliability.
+* **Integration testing**: Comprehensive integration testing of agents to ensure seamless communication and functionality.
+* **Simulation-based testing**: Regular simulation-based testing of the system to identify potential issues in a controlled environment.
