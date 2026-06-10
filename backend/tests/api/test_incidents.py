@@ -19,7 +19,7 @@ async def test_get_incidents_api_filter_24h(mock_db_client):
     ])
 
     transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as client:
+    async with AsyncClient(transport=transport, base_url="https://testserver") as client:
         response = await client.get("/api/incidents")
 
     assert response.status_code == 200
@@ -37,7 +37,7 @@ async def test_get_incidents_api_all(mock_db_client):
     ])
 
     transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as client:
+    async with AsyncClient(transport=transport, base_url="https://testserver") as client:
         response = await client.get("/api/incidents?all=true")
 
     assert response.status_code == 200
@@ -50,7 +50,7 @@ async def test_get_incidents_api_empty(mock_db_client):
     mock_db_client.get_incidents = AsyncMock(return_value=[])
 
     transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as client:
+    async with AsyncClient(transport=transport, base_url="https://testserver") as client:
         response = await client.get("/api/incidents")
 
     assert response.status_code == 200
@@ -66,7 +66,7 @@ async def test_get_incidents_api_invalid_timestamp(mock_db_client):
     ])
 
     transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as client:
+    async with AsyncClient(transport=transport, base_url="https://testserver") as client:
         response = await client.get("/api/incidents")
 
     assert response.status_code == 200
