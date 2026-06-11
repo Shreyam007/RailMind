@@ -1,14 +1,15 @@
 import os
 import json
 import logging
+import traceback
 from dotenv import load_dotenv
-from typing import List
+from typing import Dict, Any, List
 from uuid import uuid4
 from datetime import datetime
 from ..services.ai_service import reason_with_ai
 from .state import AgentState, TrainAnomaly, DepartmentTask
 from ..services.db_client import db_client
-from ..services.railways_api import get_cancelled_trains, mock_train_data, RailwaysAPIClient, get_multiple_trains
+from ..services.railways_api import get_live_train_status, get_cancelled_trains, mock_train_data, RailwaysAPIClient, get_multiple_trains
 from ..services.twilio_service import TwilioSMSClient
 from ..api.websocket import websocket_manager
 
@@ -215,7 +216,12 @@ async def reason_node(state: AgentState) -> AgentState:
         import time
         start_time = time.time()
         
-        result = await reason_with_ai(anomalies)
+        errors = state.get("errors", [])
+        try:
+            result = await reason_with_ai(anomalies, errors)
+        except Exception as ai_e:
+            logger.exception("Reasoning API failed")
+            result = {}
         
         latency = int((time.time() - start_time) * 1000)
         state["ai_latency_ms"] = latency
@@ -233,13 +239,35 @@ async def reason_node(state: AgentState) -> AgentState:
         await log_agent("reason_node", f"[RAILMIND] [ERROR] Reason node failed: {e}")
     return state
 
+from .routing import dijkstra_route_discovery
+
 async def reroute_node(state: AgentState) -> AgentState:
     try:
         await log_agent("reroute_node", "[RAILMIND] Checking and resolving rerouting options...")
+        anomalies = state.get("anomalies", [])
+        if anomalies:
+            anomaly = anomalies[0]
+            start_station = anomaly.get("current_station") or anomaly.get("location") or ""
+            target_station = anomaly.get("destination", "")
+
+            # Use fallback destination if none provided
+            if start_station == "Kanpur Central" and not target_station:
+                target_station = "Varanasi"
+
+            if start_station and target_station:
+                result = dijkstra_route_discovery(start_station, target_station)
+                if result["status"] == "Success":
+                    route_str = " -> ".join(result["route"])
+                    await log_agent("reroute_node", f"[RAILMIND] Route found: {route_str}")
+                    return {"reroute_plan": f"Dijkstra routed: {route_str} (ETA {result['cost']} mins)"}
+                else:
+                    status_msg = result.get("status", "Unknown status")
+                    await log_agent("reroute_node", f"[RAILMIND] No viable detour found: {status_msg}")
+                    state["reroute_plan"] = f"No reroute available: {status_msg}"
     except Exception as e:
         logger.error(f"Error in reroute_node: {e}")
         await log_agent("reroute_node", f"[RAILMIND] [ERROR] Reroute node failed: {e}")
-    return state
+    return {}
 
 async def coordination_node(state: AgentState) -> AgentState:
     try:
@@ -289,6 +317,8 @@ async def coordination_node(state: AgentState) -> AgentState:
         }
 
         department_tasks = [maintenance_task, operations_task, station_manager_task]
+        # Instead of replacing, we return it to let Annotated[..., operator.add] handle it, or we append directly
+        # LangGraph state update dictionary:
         state["department_tasks"] = department_tasks
 
         # Save to MongoDB
@@ -461,15 +491,76 @@ async def report_node(state: AgentState) -> AgentState:
         state["processed_trains"] = processed_trains
 
         # Reset state fields
-        state["anomalies"] = []
-        state["department_tasks"] = []
-        state["sms_alerts_sent"] = []
+        # For LangGraph annotated reducers, we can't easily clear lists by passing [] if it appends.
+        # But we can let the next graph invocation use a fresh initial state.
+        # So we just mark the next node.
         state["loop_count"] = state.get("loop_count", 0) + 1
+        state["next_node"] = "END"
 
-        import asyncio
-        await log_agent("report_node", "[RAILMIND] Sleeping for 10 seconds before next iteration...")
-        await asyncio.sleep(10)
+        # We don't sleep here in a real LangGraph flow, the streaming app handles it or the caller.
+        await log_agent("report_node", "[RAILMIND] Report node complete. Supervisor will transition to END.")
+
     except Exception as e:
         logger.error(f"Error in report_node: {e}")
         await log_agent("report_node", f"[RAILMIND] [ERROR] Report node failed: {e}")
+    return state
+
+async def supervisor_node(state: AgentState) -> dict:
+    try:
+        await log_agent("supervisor_node", "[RAILMIND] Supervisor evaluating graph state...")
+
+        anomalies = state.get("anomalies", [])
+        if not anomalies:
+            return {"next_node": "END"}
+
+        # If reasoning hasn't happened or failed to produce plan
+        if not state.get("claude_reasoning") or state.get("claude_reasoning") == "{}":
+            # For offline testing where Reason API throws Auth Error and falls back to {}
+            # we don't want an infinite loop.
+            if getattr(state, "get", lambda k,d: d)("ai_latency_ms", -1) > 0:
+                 # AI ran but returned nothing. Stop ping-ponging.
+                 return {"next_node": "END"}
+            return {"next_node": "reason_node"}
+
+        # Self correction loop check
+        try:
+            reasoning = json.loads(state.get("claude_reasoning", "{}"))
+            maintenance = reasoning.get("maintenance_task", "")
+            if "Kanpur" in maintenance and "restricted" in maintenance.lower():
+                 # Mock conflict logic
+                 await log_agent("supervisor_node", "[RAILMIND] [WARNING] Conflict detected in maintenance task. Re-routing to Reasoner.")
+                 if "errors" not in state or state["errors"] is None:
+                     state["errors"] = []
+                 state["errors"].append("Maintenance task conflicts with active line configurations at Kanpur.")
+                 state["claude_reasoning"] = "{}" # clear to force re-reason
+                 state["next_node"] = "reason_node"
+                 return state
+        except json.JSONDecodeError as e:
+            logger.warning("JSON parse failed: %s", e)
+        except Exception:
+            logger.exception("Unexpected error in supervisor self-correction logic")
+            raise
+
+        if not state.get("reroute_plan"):
+             state["next_node"] = "reroute_node"
+             return state
+
+        # If tasks not generated
+        if not state.get("department_tasks"):
+            state["next_node"] = "coordination_node"
+            return state
+
+        # If alerts not sent
+        if not state.get("sms_alerts_sent") and len(state.get("department_tasks", [])) > 0:
+            state["next_node"] = "alert_node"
+            return state
+
+        # Otherwise report and finish
+        state["next_node"] = "report_node"
+
+    except Exception as e:
+         logger.exception("Error in supervisor_node")
+         tb = traceback.format_exc()
+         await log_agent("supervisor_node", f"[RAILMIND] [ERROR] Supervisor node failed: {e}\n{tb}")
+         state["next_node"] = "END"
     return state

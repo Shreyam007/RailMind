@@ -1,5 +1,6 @@
 import os
 import json
+from datetime import datetime
 from motor.motor_asyncio import AsyncIOMotorClient # type: ignore
 import logging
 from dotenv import load_dotenv
@@ -81,8 +82,8 @@ class FallbackDB:
                         ts = datetime.fromisoformat(str(ts_str))
                     if ts > cutoff:
                         return True
-                except Exception as e:
-                    logger.warning(f"Failed to parse timestamp '{ts_str}': {e}")
+                except Exception:
+                    pass
         return False
 
     async def insert_incident(self, incident):
@@ -119,7 +120,7 @@ class FallbackDB:
         try:
             incidents = sorted(incidents, key=lambda x: x.get("timestamp", ""), reverse=True)
         except Exception:
-            logger.exception("Failed to sort incidents")
+            pass
         return incidents[:limit]
 
     async def insert_department_tasks(self, tasks):

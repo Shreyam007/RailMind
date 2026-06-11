@@ -32353,36 +32353,6 @@
       "status": "pending",
       "timestamp": "2026-06-10 10:14:50.044641",
       "_id": "6a29391a72f4298e1e40cb40"
-    },
-    {
-      "incident_id": "a8fcd769-8ebf-4d6d-98bc-75f0c116c505",
-      "department": "maintenance",
-      "task_description": "Inspect and test signaling points and local circuits at Kanpur Central station immediately.",
-      "urgency": "high",
-      "action_required": "Dispatch repair team immediately",
-      "status": "pending",
-      "timestamp": "2026-06-10 16:51:32.244054",
-      "_id": "6a299614aed4c8177e1f0c0a"
-    },
-    {
-      "incident_id": "a8fcd769-8ebf-4d6d-98bc-75f0c116c505",
-      "department": "operations",
-      "task_description": "Execute slot re-scheduling and coordinate clearance for train 12301 on the main line.",
-      "urgency": "medium",
-      "action_required": "Execute rerouting plan",
-      "status": "pending",
-      "timestamp": "2026-06-10 16:51:32.244060",
-      "_id": "6a299614aed4c8177e1f0c0b"
-    },
-    {
-      "incident_id": "a8fcd769-8ebf-4d6d-98bc-75f0c116c505",
-      "department": "station_manager",
-      "task_description": "Make PA announcement: Passenger attention please, train 12301 Howrah Rajdhani Express is running late by 45 minutes.",
-      "urgency": "high",
-      "action_required": "Make passenger announcement + update platform boards",
-      "status": "pending",
-      "timestamp": "2026-06-10 16:51:32.244063",
-      "_id": "6a299614aed4c8177e1f0c0c"
     }
   ]
 }
