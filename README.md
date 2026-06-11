@@ -200,3 +200,74 @@ Access the live deployment: **[TO BE FILLED]**
 | 3 | **Shreyam Pandey** | Member |
 | 4 | **Padmanabhan SureshBabu** | Member |
 | 5 | **Aswin R** | Member |
+
+
+Here's an updated version of the README with additional sections related to the new autonomous agent architecture:
+
+# RailMind
+
+Autonomous multi-agent orchestration system for real-time railway anomaly detection, reasoning, department task dispatching, and live operations management.
+
+## 🏗️ Architecture & Agent Flow
+
+RailMind operates on an autonomous LangGraph pipeline, pulling telemetry, analyzing safety parameters, generating intelligent mitigation plans via Claude, dispatching actions, and broadcasting live updates.
+
+```
+                  +--------------------------------+
+                  |      Indian Railways API       |
+                  +---------------+----------------+
+                                  |
+                                  v
+                  +---------------+----------------+
+                  |          Ingest Node           |
+                  +---------------+----------------+
+                                  |
+                                  v
+                  +---------------+----------------+
+                  |          Detect Node           |
+                  +---------------+----------------+
+                                  |
+            +---------------------+---------------------+
+            | (Anomalies detected?)                     | (No anomalies)
+            v Yes                                       v
++-----------+------------+                    +---------+--------+
+|      Reason Node       |                    |    End Loop /    |
+|  (Claude 3.5 Sonnet)   |                    |   Ingest Node    |
++-----------+------------+             ...
+```
+
+## 🤖 Autonomous OS Capabilities
+
+RailMind's autonomous architecture provides the following capabilities:
+
+### 🔒 **Security**
+
+* Multi-layered authentication and authorization for secure access to RailMind components
+* Data encryption in transit and at rest using industry-standard protocols (e.g., TLS, PGP)
+* Regular security audits and penetration testing to identify vulnerabilities
+
+### 💡 **Repo Intelligence**
+
+* Real-time monitoring of repository performance and availability
+* Automated alerts for issues affecting repository operations
+* Integration with CI/CD tools for seamless deployment of updates
+
+### 🔩 **Refactoring**
+
+* Continuous code review and refactoring to ensure maintainability and scalability
+* Automated testing and validation of new features and bug fixes
+* Regular dependency updates to prevent vulnerabilities
+
+### 📚 **Documentation**
+
+* Up-to-date documentation of RailMind architecture, APIs, and configuration options
+* User guides for administrators, operators, and developers
+* Release notes and changelogs for each version
+
+### 💻 **Testing**
+
+* Comprehensive testing framework covering unit tests, integration tests, and UI tests
+* Automated regression testing to ensure bug-free functionality
+* Continuous integration and delivery (CI/CD) pipeline for rapid deployment of updates
+
+These sections provide a high-level overview of the additional capabilities enabled by RailMind's autonomous architecture.
