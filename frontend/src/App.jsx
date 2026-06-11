@@ -1,5 +1,5 @@
 /* eslint-disable */
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import Sidebar from './components/Sidebar';
 import TopBar from './components/TopBar';
 import LiveMap from './components/LiveMap';
@@ -74,6 +74,31 @@ function MainApp() {
   const [showSettings, setShowSettings] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
+
+  const recentIncidentElements = useMemo(() => {
+    const result = [];
+    const len = Math.min(incidents.length, 5);
+    for (let i = 0; i < len; i++) {
+      const inc = incidents[i];
+      result.push(
+        <div key={inc.id} style={{
+          backgroundColor: '#161920',
+          border: '1px solid #1a1e26',
+          padding: '10px 14px',
+          borderRadius: '4px',
+          fontSize: '12px',
+          color: '#cbd5e1'
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+            <span style={{ color: '#ef4444', fontWeight: 600 }}>{inc.severity.toUpperCase()}</span>
+            <span style={{ color: '#64748b' }}>{inc.timestamp}</span>
+          </div>
+          {inc.title}
+        </div>
+      );
+    }
+    return result;
+  }, [incidents]);
 
   const socketRef = useRef(null);
   const API_BASE = `http://${window.location.hostname}:8000`;
@@ -1122,22 +1147,7 @@ function MainApp() {
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', overflowY: 'auto', flex: 1 }}>
-              {incidents.slice(0, 5).map(inc => (
-                <div key={inc.id} style={{
-                  backgroundColor: '#161920',
-                  border: '1px solid #1a1e26',
-                  padding: '10px 14px',
-                  borderRadius: '4px',
-                  fontSize: '12px',
-                  color: '#cbd5e1'
-                }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                    <span style={{ color: '#ef4444', fontWeight: 600 }}>{inc.severity.toUpperCase()}</span>
-                    <span style={{ color: '#64748b' }}>{inc.timestamp}</span>
-                  </div>
-                  {inc.title}
-                </div>
-              ))}
+              {recentIncidentElements}
               {incidents.length === 0 && (
                 <div style={{ color: '#64748b', fontStyle: 'italic', textAlign: 'center', padding: '20px' }}>
                   No notifications recorded.
