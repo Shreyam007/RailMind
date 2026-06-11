@@ -1,5 +1,5 @@
 /* eslint-disable */
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { ShieldAlert, AlertTriangle, Info, Check, CornerDownRight } from 'lucide-react';
 
 export default function IncidentFeed({ incidents = [], onApprove, onAcknowledge }) {
@@ -63,7 +63,9 @@ export default function IncidentFeed({ incidents = [], onApprove, onAcknowledge 
   };
 
   // Header active count should count pending resolution_status
-  const activeCount = incidents.filter(inc => inc.resolution_status === 'pending' || !inc.approved).length;
+  const activeCount = useMemo(() => {
+    return incidents.filter(inc => inc.resolution_status === 'pending' || !inc.approved).length;
+  }, [incidents]);
 
   return (
     <div style={{
