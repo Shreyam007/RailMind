@@ -1,21 +1,22 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&family=Share+Tech+Mono&display=swap');
 @import "leaflet/dist/leaflet.css";
 
 :root {
-  --bg-main: #0b0d10;
-  --bg-panel: #11141a;
-  --bg-card: #161920;
-  --bg-card-hover: #1c202a;
-  --border-color: #1a1e26;
+  --bg-main: #080a0d;
+  --bg-panel: #0d1117;
+  --bg-card: #121820;
+  --bg-card-hover: #17202b;
+  --border-color: #1a2433;
+  --border-color-active: #3b82f6;
   --text-primary: #e2e8f0;
-  --text-secondary: #94a3b8;
-  --text-muted: #64748b;
-  --accent-color: #3b82f6;
+  --text-secondary: #8a9ba8;
+  --text-muted: #5c7080;
+  --accent-color: #00f0ff;
   
-  --color-critical: #ef4444;
-  --color-warning: #f59e0b;
-  --color-info: #3b82f6;
-  --color-resolved: #10b981;
+  --color-critical: #ff3366;
+  --color-warning: #ffb300;
+  --color-info: #00f0ff;
+  --color-resolved: #00e676;
 }
 
 * {
@@ -25,50 +26,60 @@
 }
 
 body {
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-family: 'Inter', -apple-system, sans-serif;
   background-color: var(--bg-main);
+  background-image: 
+    radial-gradient(rgba(0, 240, 255, 0.03) 1px, transparent 0),
+    radial-gradient(rgba(0, 240, 255, 0.02) 2px, transparent 0);
+  background-size: 24px 24px, 48px 48px;
+  background-position: 0 0, 12px 12px;
   color: var(--text-primary);
   overflow: hidden;
   -webkit-font-smoothing: antialiased;
 }
 
+/* Monospace Utility */
+.palantir-mono {
+  font-family: 'JetBrains Mono', 'Share Tech Mono', monospace !important;
+}
+
 /* Scrollbar styling */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 4px;
+  height: 4px;
 }
 ::-webkit-scrollbar-track {
   background: var(--bg-panel);
 }
 ::-webkit-scrollbar-thumb {
-  background: #232a35;
-  border-radius: 3px;
+  background: var(--border-color);
+  border-radius: 0px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #313b4a;
+  background: var(--text-muted);
 }
 
-/* Pulsing dot animation */
+/* Pulse animation */
 @keyframes pulse-live {
   0% {
     transform: scale(0.95);
-    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+    box-shadow: 0 0 0 0 rgba(0, 240, 255, 0.5);
   }
   70% {
     transform: scale(1);
-    box-shadow: 0 0 0 6px rgba(16, 185, 129, 0);
+    box-shadow: 0 0 0 8px rgba(0, 240, 255, 0);
   }
   100% {
     transform: scale(0.95);
-    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+    box-shadow: 0 0 0 0 rgba(0, 240, 255, 0);
   }
 }
 
-.pulse-dot-green {
+.pulse-dot-cyan {
   display: inline-block;
   width: 8px;
   height: 8px;
-  background-color: #10b981;
+  background-color: var(--accent-color);
   border-radius: 50%;
   animation: pulse-live 2s infinite;
 }
@@ -77,7 +88,7 @@ body {
 .leaflet-container {
   width: 100%;
   height: 100%;
-  background-color: #0b0d10 !important;
+  background-color: #080a0d !important;
 }
 
 .leaflet-control-zoom {
@@ -90,13 +101,14 @@ body {
   background-color: var(--bg-panel) !important;
   color: var(--text-primary) !important;
   border-bottom: 1px solid var(--border-color) !important;
-  font-family: 'Inter', sans-serif !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  border-radius: 0px !important;
 }
 
 .leaflet-control-zoom-in:hover,
 .leaflet-control-zoom-out:hover {
   background-color: var(--bg-card) !important;
-  color: #fff !important;
+  color: var(--accent-color) !important;
 }
 
 .leaflet-bar {
@@ -109,9 +121,9 @@ body {
   background-color: var(--bg-card) !important;
   color: var(--text-primary) !important;
   border: 1px solid var(--border-color) !important;
-  border-radius: 6px !important;
+  border-radius: 0px !important;
   padding: 0 !important;
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5) !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.7) !important;
 }
 
 .leaflet-popup-content {
@@ -128,4 +140,31 @@ body {
 .leaflet-div-icon {
   background: transparent !important;
   border: none !important;
+}
+
+/* Tactical Panel/Widget Border Styles */
+.terminal-panel {
+  background-color: var(--bg-panel);
+  border: 1px solid var(--border-color);
+  position: relative;
+}
+
+.terminal-panel::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 8px;
+  height: 2px;
+  background-color: var(--accent-color);
+}
+
+.terminal-panel::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 2px;
+  height: 8px;
+  background-color: var(--accent-color);
 }

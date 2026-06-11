@@ -27,27 +27,26 @@ const MAP_CENTER = [21.7679, 78.8718];
 
 // Create custom icons representing train status on the map
 const createCustomMarker = (status, delay) => {
-  let color = '#10b981'; // nominal (green)
+  let color = '#00f0ff'; // nominal (cyan)
   if (status === 'cancelled' || delay > 60) {
-    color = '#ef4444'; // critical (red)
+    color = '#ff3366'; // critical (red)
   } else if (status === 'delayed' || delay > 15) {
-    color = '#f59e0b'; // warning (yellow)
+    color = '#ffb300'; // warning (yellow)
   }
 
   return L.divIcon({
     html: `<div style="
       position: relative;
-      width: 14px;
-      height: 14px;
+      width: 12px;
+      height: 12px;
       background-color: ${color};
-      border: 2px solid #ffffff;
-      border-radius: 50%;
-      box-shadow: 0 0 8px ${color};
+      border: 1px solid #080a0d;
+      box-shadow: 0 0 6px ${color};
       cursor: pointer;
     "></div>`,
     className: 'custom-train-marker-wrapper',
-    iconSize: [14, 14],
-    iconAnchor: [7, 7]
+    iconSize: [12, 12],
+    iconAnchor: [6, 6]
   });
 };
 
@@ -94,7 +93,7 @@ export default function LiveMap({ trains = [] }) {
       flex: 1,
       height: '100%',
       position: 'relative',
-      backgroundColor: '#0b0d10'
+      backgroundColor: '#080a0d'
     }}>
       <MapContainer 
         center={MAP_CENTER} 
@@ -136,13 +135,14 @@ export default function LiveMap({ trains = [] }) {
               position={position}
               icon={markerIcon}
             >
-              <Popup closeButton={false} minWidth={220}>
+              <Popup closeButton={false} minWidth={240}>
                 <div style={{
                   padding: '12px',
-                  backgroundColor: '#161920',
+                  backgroundColor: '#121820',
                   color: '#e2e8f0',
-                  fontFamily: 'inherit',
-                  borderRadius: '6px'
+                  fontFamily: "'JetBrains Mono', monospace",
+                  borderRadius: '0px',
+                  border: '1px solid #1a2433'
                 }}>
                   {/* Tooltip Header */}
                   <div style={{
@@ -152,38 +152,39 @@ export default function LiveMap({ trains = [] }) {
                     marginBottom: '8px'
                   }}>
                     <span style={{
-                      fontSize: '10px',
+                      fontSize: '9px',
                       fontWeight: 700,
-                      backgroundColor: isDelayed ? 'rgba(245, 158, 11, 0.15)' : 'rgba(16, 185, 129, 0.15)',
-                      color: isDelayed ? '#f59e0b' : '#10b981',
+                      backgroundColor: isDelayed ? 'rgba(255, 179, 0, 0.15)' : 'rgba(0, 240, 255, 0.15)',
+                      color: isDelayed ? '#ffb300' : '#00f0ff',
                       padding: '2px 6px',
-                      borderRadius: '4px',
+                      borderRadius: '0px',
+                      border: `1px solid ${isDelayed ? '#ffb300' : '#00f0ff'}`,
                       letterSpacing: '0.5px'
                     }}>
                       {statusText}
                     </span>
-                    <span style={{ fontSize: '10px', color: '#64748b' }}>#{train.train_number}</span>
+                    <span style={{ fontSize: '10px', color: '#5c7080' }}>NO.{train.train_number}</span>
                   </div>
 
                   {/* Tooltip Body */}
-                  <h3 style={{ fontSize: '14px', fontWeight: 600, color: '#fff', marginBottom: '4px' }}>
+                  <h3 style={{ fontSize: '13px', fontWeight: 600, color: '#fff', marginBottom: '4px' }}>
                     {train.train_name || 'Train Express'}
                   </h3>
-                  <p style={{ fontSize: '11px', color: '#94a3b8', marginBottom: '8px' }}>
-                    ID: {train.train_id || `TN-${train.train_number}`} • V: {train.speed || '80 km/h'}
+                  <p style={{ fontSize: '10px', color: '#8a9ba8', marginBottom: '8px' }}>
+                    ID: {train.train_id || `TN-${train.train_number}`} • VEL: {train.speed || '80 km/h'}
                   </p>
 
-                  <div style={{ height: '1px', backgroundColor: '#1a1e26', margin: '8px 0' }}></div>
+                  <div style={{ height: '1px', backgroundColor: '#1a2433', margin: '8px 0' }}></div>
 
                   {/* Tooltip Footer */}
                   <div style={{
                     display: 'flex',
                     justifyContent: 'space-between',
-                    fontSize: '11px',
+                    fontSize: '10px',
                     fontWeight: 500
                   }}>
-                    <span style={{ color: '#64748b' }}>NEXT: <strong style={{ color: '#cbd5e1' }}>{train.next_station || 'MAS'}</strong></span>
-                    <span style={{ color: '#3b82f6' }}>{train.distance_next || '0.5 KM'}</span>
+                    <span style={{ color: '#5c7080' }}>NEXT: <strong style={{ color: '#e2e8f0' }}>{train.next_station || 'MAS'}</strong></span>
+                    <span style={{ color: '#00f0ff' }}>{train.distance_next || '0.5 KM'}</span>
                   </div>
                 </div>
               </Popup>

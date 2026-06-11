@@ -4,23 +4,23 @@ import { LayoutDashboard, Map, BellRing, ClipboardList, BarChart3, HelpCircle, F
 
 export default function Sidebar({ activeTab = 'Dashboard', setActiveTab }) {
   const menuItems = [
-    { id: 'Dashboard', name: 'Dashboard', icon: LayoutDashboard },
-    { id: 'Live Map', name: 'Live Map', icon: Map },
-    { id: 'Incident Feed', name: 'Incident Feed', icon: BellRing },
-    { id: 'Task Board', name: 'Task Board', icon: ClipboardList },
-    { id: 'Analytics', name: 'Analytics', icon: BarChart3 }
+    { id: 'Dashboard', name: 'DASHBOARD', icon: LayoutDashboard },
+    { id: 'Live Map', name: 'LIVE MAP', icon: Map },
+    { id: 'Incident Feed', name: 'INCIDENT FEED', icon: BellRing },
+    { id: 'Task Board', name: 'TASK BOARD', icon: ClipboardList },
+    { id: 'Analytics', name: 'ANALYTICS', icon: BarChart3 }
   ];
 
   const bottomItems = [
-    { id: 'Support', name: 'SUPPORT', icon: HelpCircle },
-    { id: 'Logs', name: 'LOGS', icon: FileClock }
+    { id: 'Support', name: 'SUPPORT // HELP', icon: HelpCircle },
+    { id: 'Logs', name: 'SYSTEM LOGS', icon: FileClock }
   ];
 
   return (
     <div style={{
       width: '240px',
-      backgroundColor: '#11141a',
-      borderRight: '1px solid #1a1e26',
+      backgroundColor: '#0d1117',
+      borderRight: '1px solid #1a2433',
       display: 'flex',
       flexDirection: 'column',
       justifyContent: 'space-between',
@@ -30,9 +30,9 @@ export default function Sidebar({ activeTab = 'Dashboard', setActiveTab }) {
     }}>
       <div>
         {/* Header */}
-        <div style={{ padding: '0 24px 24px 24px', borderBottom: '1px solid #1a1e26' }}>
-          <h2 style={{ fontSize: '18px', fontWeight: 600, color: '#f8fafc', letterSpacing: '-0.5px' }}>System Alpha</h2>
-          <span style={{ fontSize: '11px', color: '#5f759e', fontWeight: 500 }}>Vigilance Active</span>
+        <div style={{ padding: '0 24px 24px 24px', borderBottom: '1px solid #1a2433' }}>
+          <h2 className="palantir-mono" style={{ fontSize: '15px', fontWeight: 600, color: '#e2e8f0', letterSpacing: '1px' }}>SYS // ALPHA</h2>
+          <span className="palantir-mono" style={{ fontSize: '10px', color: '#00f0ff', fontWeight: 500 }}>VIGILANCE // ACTIVE</span>
         </div>
 
         {/* Navigation */}
@@ -44,18 +44,19 @@ export default function Sidebar({ activeTab = 'Dashboard', setActiveTab }) {
               <button
                 key={item.id}
                 onClick={() => setActiveTab && setActiveTab(item.id)}
+                className="palantir-mono"
                 style={{
                   display: 'flex',
                   alignItems: 'center',
                   gap: '12px',
                   padding: '12px 16px',
-                  backgroundColor: isActive ? '#1c202a' : 'transparent',
+                  backgroundColor: isActive ? '#121820' : 'transparent',
                   border: 'none',
-                  borderRadius: '6px',
-                  color: isActive ? '#f8fafc' : '#cbd5e1',
-                  fontFamily: 'inherit',
-                  fontSize: '14px',
-                  fontWeight: 500,
+                  borderLeft: isActive ? '3px solid #00f0ff' : '3px solid transparent',
+                  borderRadius: '0px',
+                  color: isActive ? '#00f0ff' : '#8a9ba8',
+                  fontSize: '12px',
+                  fontWeight: 600,
                   cursor: 'pointer',
                   textAlign: 'left',
                   transition: 'all 0.2s ease',
@@ -63,18 +64,18 @@ export default function Sidebar({ activeTab = 'Dashboard', setActiveTab }) {
                 }}
                 onMouseEnter={(e) => {
                   if (!isActive) {
-                    e.currentTarget.style.backgroundColor = '#151821';
-                    e.currentTarget.style.color = '#cbd5e1';
+                    e.currentTarget.style.backgroundColor = '#17202b';
+                    e.currentTarget.style.color = '#e2e8f0';
                   }
                 }}
                 onMouseLeave={(e) => {
                   if (!isActive) {
                     e.currentTarget.style.backgroundColor = 'transparent';
-                    e.currentTarget.style.color = '#cbd5e1';
+                    e.currentTarget.style.color = '#8a9ba8';
                   }
                 }}
               >
-                <Icon size={18} style={{ color: isActive ? '#3b82f6' : '#64748b' }} />
+                <Icon size={16} style={{ color: isActive ? '#00f0ff' : '#5c7080' }} />
                 {item.name}
               </button>
             );
@@ -91,17 +92,18 @@ export default function Sidebar({ activeTab = 'Dashboard', setActiveTab }) {
             <button
               key={item.id}
               onClick={() => setActiveTab && setActiveTab(item.id)}
+              className="palantir-mono"
               style={{
                 display: 'flex',
                 alignItems: 'center',
                 gap: '12px',
                 padding: '10px 16px',
-                backgroundColor: isActive ? '#1c202a' : 'transparent',
+                backgroundColor: isActive ? '#121820' : 'transparent',
                 border: 'none',
-                borderRadius: '6px',
-                color: '#94a3b8',
-                fontFamily: 'inherit',
-                fontSize: '11px',
+                borderLeft: isActive ? '3px solid #00f0ff' : '3px solid transparent',
+                borderRadius: '0px',
+                color: isActive ? '#00f0ff' : '#5c7080',
+                fontSize: '10px',
                 fontWeight: 600,
                 letterSpacing: '0.5px',
                 cursor: 'pointer',
@@ -110,15 +112,19 @@ export default function Sidebar({ activeTab = 'Dashboard', setActiveTab }) {
                 width: '100%'
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = '#151821';
-                e.currentTarget.style.color = '#cbd5e1';
+                if (!isActive) {
+                  e.currentTarget.style.backgroundColor = '#17202b';
+                  e.currentTarget.style.color = '#e2e8f0';
+                }
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = 'transparent';
-                e.currentTarget.style.color = '#94a3b8';
+                if (!isActive) {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                  e.currentTarget.style.color = '#5c7080';
+                }
               }}
             >
-              <Icon size={15} style={{ color: '#64748b' }} />
+              <Icon size={14} style={{ color: '#5c7080' }} />
               {item.name}
             </button>
           );
