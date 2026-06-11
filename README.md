@@ -191,7 +191,7 @@ Access the live deployment: **[TO BE FILLED]**
 ## 👥 Team
 
 > **Team Name:** `nitishrg.8220psgps2020`
-> **Institution:** Indian Institute of Technology Madras, Chennai
+> **Institution:** PSG College of Technology, Coimbatore
 
 | # | Name | Role |
 | :---: | :--- | :--- |
