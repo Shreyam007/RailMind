@@ -8,9 +8,32 @@ from dotenv import load_dotenv
 env_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".env")
 load_dotenv(dotenv_path=env_path)
 
-from fastapi import FastAPI, WebSocket, HTTPException
+import secrets
+from fastapi import FastAPI, WebSocket, HTTPException, Depends, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from ..services.db_client import db_client
+
+security = HTTPBasic()
+
+def verify_admin(credentials: HTTPBasicCredentials = Depends(security)):
+    admin_user = os.getenv("ADMIN_USERNAME", "admin")
+    admin_pass = os.getenv("ADMIN_PASSWORD")
+    if not admin_pass:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Admin password not configured in environment.",
+        )
+
+    correct_username = secrets.compare_digest(credentials.username, admin_user)
+    correct_password = secrets.compare_digest(credentials.password, admin_pass)
+    if not (correct_username and correct_password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect admin username or password",
+            headers={"WWW-Authenticate": "Basic"},
+        )
+    return credentials.username
 
 from .routes import router
 from .websocket import websocket_endpoint, websocket_manager # type: ignore
@@ -180,7 +203,7 @@ async def resolve_task_api(id: str):
 
 # REST Endpoint: POST /api/incidents/{id}/approve - Approve reroute plan
 @app.post("/api/incidents/{id}/approve")
-async def approve_incident_api(id: str):
+async def approve_incident_api(id: str, admin: str = Depends(verify_admin)):
     try:
         modified_count = await db_client.approve_incident(id)
         return {"status": "approved", "modified_count": modified_count}
