@@ -8,23 +8,26 @@ export default function TaskBoard({ tasks = [], onResolve, fullScreen = false })
     {
       id: "task_001",
       department: "maintenance",
-      task_description: "Engine check - Train 402",
+      task_description: "Engine Check - Train 402",
       urgency: "urgent",
-      action_required: "DUE: 15:00"
+      action_required: "DUE: 15:00",
+      detail: "Anomaly detected in propulsion system. Immediate action required."
     },
     {
       id: "task_002",
       department: "operations",
-      task_description: "Signal Calibration",
+      task_description: "Signal Calibration - Route 7",
       urgency: "medium",
-      action_required: "ASSIGNED: ALPHA-9"
+      action_required: "ASSIGNED: ALPHA-9",
+      detail: "Routine calibration needed for optimal traffic flow. No immediate impact."
     },
     {
       id: "task_003",
       department: "station_manager",
       task_description: "Platform 4 Clearance",
       urgency: "resolved",
-      action_required: "COMPLETED 10:55"
+      action_required: "COMPLETED 10:55",
+      detail: "Passenger crowd dissipated, platform cleared for next service."
     }
   ];
 
@@ -71,7 +74,7 @@ export default function TaskBoard({ tasks = [], onResolve, fullScreen = false })
         backgroundColor: bg,
         padding: '2px 6px',
         border: `1px solid ${color}`,
-        borderRadius: '0px',
+        borderRadius: '2px',
         letterSpacing: '1px'
       }}>
         {text}
@@ -114,7 +117,7 @@ export default function TaskBoard({ tasks = [], onResolve, fullScreen = false })
                 style={{
                   backgroundColor: '#121820',
                   border: '1px solid #1a2433',
-                  borderRadius: '0px',
+                  borderRadius: '2px',
                   padding: '16px',
                   position: 'relative',
                   display: 'flex',
@@ -152,7 +155,7 @@ export default function TaskBoard({ tasks = [], onResolve, fullScreen = false })
                       onMouseEnter={(e) => e.currentTarget.style.color = '#00e676'}
                       onMouseLeave={(e) => e.currentTarget.style.color = '#5c7080'}
                     >
-                      <MoreHorizontal size={16} />
+                      <span style={{ fontSize: '12px', fontWeight: 'bold' }}>•••</span>
                     </button>
                   )}
                 </div>
@@ -168,7 +171,7 @@ export default function TaskBoard({ tasks = [], onResolve, fullScreen = false })
                     color: isResolved ? '#5c7080' : '#fff',
                     textDecoration: isResolved ? 'line-through' : 'none'
                   }}>
-                    {task.task_description}
+                    {task.task_description || task.description}
                   </span>
                 </div>
 
@@ -177,21 +180,67 @@ export default function TaskBoard({ tasks = [], onResolve, fullScreen = false })
                   {task.action_required}
                 </span>
 
-                {/* completion check visual */}
-                {isResolved && (
-                  <div style={{
-                    position: 'absolute',
-                    right: '16px',
-                    bottom: '16px',
-                    width: '24px',
-                    height: '24px',
-                    backgroundColor: 'rgba(0, 230, 118, 0.05)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    border: '1px solid #00e676'
-                  }}>
-                    <CheckCircle2 size={14} style={{ color: '#00e676' }} />
+                {/* Short Task description */}
+                <span style={{ fontSize: '11px', color: '#8a9ba8', lineHeight: '1.4' }}>
+                  {task.detail || task.situation_summary || "Anomaly logged. Awaiting dispatch actions."}
+                </span>
+
+                {/* Action Buttons */}
+                {!isResolved ? (
+                  <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
+                    <button 
+                      onClick={() => onResolve && onResolve(task._id || task.id)}
+                      className="palantir-mono"
+                      style={{
+                        flex: 1,
+                        backgroundColor: '#1c2430',
+                        border: '1px solid #1a2433',
+                        color: '#e2e8f0',
+                        fontSize: '10px',
+                        padding: '6px 0',
+                        cursor: 'pointer',
+                        borderRadius: '2px',
+                        fontWeight: 600
+                      }}
+                    >
+                      Action
+                    </button>
+                    <button 
+                      className="palantir-mono"
+                      style={{
+                        flex: 1,
+                        backgroundColor: '#1c2430',
+                        border: '1px solid #1a2433',
+                        color: '#e2e8f0',
+                        fontSize: '10px',
+                        padding: '6px 0',
+                        cursor: 'pointer',
+                        borderRadius: '2px',
+                        fontWeight: 600
+                      }}
+                    >
+                      Assign
+                    </button>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
+                    <button 
+                      disabled
+                      className="palantir-mono"
+                      style={{
+                        flex: 1,
+                        backgroundColor: 'rgba(0, 230, 118, 0.04)',
+                        border: '1px solid rgba(0, 230, 118, 0.15)',
+                        color: '#00e676',
+                        fontSize: '10px',
+                        padding: '6px 0',
+                        borderRadius: '2px',
+                        fontWeight: 600,
+                        textAlign: 'center'
+                      }}
+                    >
+                      Resolved ✓
+                    </button>
                   </div>
                 )}
               </div>
@@ -204,7 +253,7 @@ export default function TaskBoard({ tasks = [], onResolve, fullScreen = false })
 
   return (
     <div style={{
-      height: fullScreen ? '100%' : '240px',
+      height: fullScreen ? '100%' : '250px',
       flex: fullScreen ? 1 : 'none',
       backgroundColor: '#0d1117',
       borderTop: '1px solid #1a2433',

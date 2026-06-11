@@ -5,6 +5,7 @@ import TopBar from './components/TopBar';
 import LiveMap from './components/LiveMap';
 import IncidentFeed from './components/IncidentFeed';
 import TaskBoard from './components/TaskBoard';
+import RouteIntelligence from './components/RouteIntelligence';
 import { ShieldAlert, AlertTriangle, Info, Check, CornerDownRight, Terminal, RefreshCw, X, Shield, User, HelpCircle, Activity, Bell, Settings } from 'lucide-react';
 
 class ErrorBoundary extends React.Component {
@@ -991,7 +992,7 @@ function MainApp() {
         return <LogsView logs={logs} onClear={() => setLogs([])} />;
 
       case 'Telemetry':
-        return <TelemetryView />;
+        return <RouteIntelligence trains={trains} />;
 
       case 'Schedules':
         return <SchedulesView />;
