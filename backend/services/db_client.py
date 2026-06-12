@@ -232,4 +232,26 @@ class FallbackDB:
                 await self._write_fallback(data)
             return modified_count
 
+    async def get_counts(self):
+        if not self.use_fallback:
+            try:
+                # Use a low timeout so we fail fast if MongoDB is down/unreachable
+                incident_count = await asyncio.wait_for(
+                    self.db["incidents"].count_documents({}),
+                    timeout=2.0
+                )
+                task_count = await asyncio.wait_for(
+                    self.db["department_tasks"].count_documents({}),
+                    timeout=2.0
+                )
+                return incident_count, task_count
+            except Exception as e:
+                logger.warning(f"MongoDB count_documents failed or timed out: {e}. Falling back.")
+                self.use_fallback = True
+
+        async with self._lock:
+            data = await self._read_fallback()
+            return len(data.get("incidents", [])), len(data.get("department_tasks", []))
+
 db_client = FallbackDB()
+

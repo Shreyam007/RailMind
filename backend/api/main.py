@@ -252,9 +252,8 @@ async def get_telemetry_api():
     incident_count = 0
     task_count = 0
     try:
-        from ..services.db_client import db
-        incident_count = await db["incidents"].count_documents({})
-        task_count = await db["department_tasks"].count_documents({})
+        from ..services.db_client import db_client
+        incident_count, task_count = await db_client.get_counts()
     except Exception:
         pass
 
@@ -267,6 +266,7 @@ async def get_telemetry_api():
         "mongodb_incidents": incident_count,
         "mongodb_tasks": task_count
     }
+
 
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)

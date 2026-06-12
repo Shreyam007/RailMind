@@ -404,29 +404,16 @@ async def alert_node(state: AgentState) -> AgentState:
         await log_agent("alert_node", f"[RAILMIND] [ERROR] Alert node failed: {e}")
     return state
 
-async def save_incident_if_not_duplicate(db, incident):
+async def save_incident_if_not_duplicate(incident):
     # Check last 5 minutes for same train number
-    from datetime import datetime, timedelta
-    five_mins_ago = datetime.utcnow() - timedelta(minutes=5)
+    duplicate = await db_client.has_recent_incident(incident["train_number"], minutes=5)
     
-    existing = await db.incidents.find_one({
-        "train_number": incident["train_number"],
-        "timestamp": {
-            "$gt": five_mins_ago.isoformat()
-        }
-    })
-    
-    if existing:
-        print(f"[RAILMIND] Skipping duplicate incident for "
-              f"train {incident['train_number']} "
-              f"(last logged {existing['timestamp']})")
+    if duplicate:
+        print(f"[RAILMIND] Skipping duplicate incident for train {incident['train_number']} (last logged in the last 5 minutes)")
         return False
     
-    # Make a copy to avoid inserting _id of type ObjectId in-place into the original dictionary
-    incident_copy = incident.copy()
-    await db.incidents.insert_one(incident_copy)
-    print(f"[RAILMIND] New incident saved: "
-          f"{incident['incident_title']}")
+    await db_client.insert_incident(incident)
+    print(f"[RAILMIND] New incident saved: {incident['incident_title']}")
     return True
 
 async def report_node(state: AgentState) -> AgentState:
@@ -473,7 +460,7 @@ async def report_node(state: AgentState) -> AgentState:
         }
 
         # Check for duplicates in last 5 minutes before saving (ISSUE 2)
-        saved = await save_incident_if_not_duplicate(db_client.db, incident_report)
+        saved = await save_incident_if_not_duplicate(incident_report)
         if saved:
             # Broadcast via WebSocket
             try:
