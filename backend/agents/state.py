@@ -37,6 +37,7 @@ class AgentState(TypedDict):
     railways_latency_ms: int
     ai_latency_ms: int
     processed_trains: List[str]
+    target_trains: List[str]
     errors: Annotated[List[str], append_to_list]
     next_node: str
     messages: Annotated[list, operator.add]

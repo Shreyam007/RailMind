@@ -77,44 +77,6 @@ latest_agent_state = {
     "processed_trains": []
 }
 
-async def run_agent_loop():
-    """
-    Runs the LangGraph agent graph continuously in a background loop.
-    """
-    print("[AGENT LOOP] Starting background autonomous agent runner")
-    
-    while True:
-        try:
-            initial_state = AgentState(
-                raw_train_data=[],
-                anomalies=[],
-                claude_reasoning="",
-                reroute_plan=None,
-                department_tasks=[],
-                sms_alerts_sent=[],
-                incident_report=None,
-                loop_count=latest_agent_state.get("loop_count", 0),
-                should_continue=False,
-                last_api_call=latest_agent_state.get("last_api_call", "Never"),
-                railways_latency_ms=latest_agent_state.get("railways_latency_ms", 0),
-                ai_latency_ms=latest_agent_state.get("ai_latency_ms", 0),
-                processed_trains=latest_agent_state.get("processed_trains", [])
-            )
-            # Invoke graph using ainvoke
-            import uuid
-            thread_id = f"api_main_{latest_agent_state.get('loop_count', 0)}_{uuid.uuid4().hex[:8]}"
-            config = {"configurable": {"thread_id": thread_id}, "recursion_limit": 20}
-            result = await railmind_graph.ainvoke(initial_state, config)
-            
-            # Increment loop count on successful iteration
-            if result:
-                result["loop_count"] = result.get("loop_count", 0) + 1
-                # Sync to global object
-                latest_agent_state.update(result)
-        except Exception as e:
-            print(f"[RAILMIND] Agent loop error: {e}")
-        finally:
-            await asyncio.sleep(60)  # Wait 60 seconds between loops (NOT 1s, NOT continuous)
 
 @app.on_event("startup")
 async def startup_event():
@@ -125,6 +87,7 @@ async def startup_event():
         print("[RAILMIND] MongoDB Atlas connected [OK]")
         
         # Cleanup incidents and tasks
+        await db_client.init_indexes()
         await db.incidents.delete_many({})
         await db.department_tasks.delete_many({})
         print("[RAILMIND] Cleared MongoDB incidents and tasks collections [OK]")
@@ -132,7 +95,7 @@ async def startup_event():
         print(f"[RAILMIND] MongoDB connection/cleanup failed: {e}")
 
     # Run the agent workflow loop asynchronously in the background on API startup
-    asyncio.create_task(run_agent_loop())
+    # Delegated to ARQ worker: run_agent_loop()
 
 # Include general REST routers
 app.include_router(router, prefix="/api")
