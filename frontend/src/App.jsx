@@ -70,6 +70,7 @@ function MainApp() {
   const [trains, setTrains] = useState([]);
   const [wsStatus, setWsStatus] = useState('reconnecting');
   const [logs, setLogs] = useState([]);
+  const [agentState, setAgentState] = useState('IDLE');
   
   // Modal Overlay States
   const [showSettings, setShowSettings] = useState(false);
@@ -218,6 +219,8 @@ function MainApp() {
             fetchTrains();
           } else if (payload.type === 'AGENT_LOG') {
             setLogs(prev => [...prev, payload].slice(-200)); // Keep last 200 logs
+          } else if (payload.type === 'AGENT_STATE_CHANGE') {
+            setAgentState(payload.state);
           }
         } catch (err) {
           console.error("[WEBSOCKET] Error parsing socket data:", err);
@@ -953,7 +956,7 @@ function MainApp() {
               backgroundColor: '#080a0d'
             }}>
               <div style={{ flex: 1, position: 'relative' }}>
-                <LiveMap trains={trains} />
+                <LiveMap trains={trains} incidents={incidents} />
               </div>
               <TaskBoard tasks={tasks} onResolve={handleResolve} />
             </div>
@@ -968,7 +971,7 @@ function MainApp() {
       case 'Live Map':
         return (
           <div style={{ flex: 1, position: 'relative', height: '100%' }}>
-            <LiveMap trains={trains} />
+            <LiveMap trains={trains} incidents={incidents} />
           </div>
         );
 
@@ -1061,7 +1064,7 @@ function MainApp() {
       )}
 
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
-        <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
+        <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} agentState={agentState} />
         {renderContent()}
       </div>
 
