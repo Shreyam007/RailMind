@@ -498,6 +498,15 @@ function MainApp() {
     const totalCount = incidents.length;
 
     const maxCount = Math.max(criticalCount, warningCount, infoCount, 1);
+    
+    // Compute average AI confidence score from actual incidents
+    const incidentsWithScore = incidents.filter(i => i.confidence_score);
+    const avgConfidence = incidentsWithScore.length > 0
+      ? (incidentsWithScore.reduce((s, i) => s + i.confidence_score, 0) / incidentsWithScore.length).toFixed(1)
+      : '—';
+    
+    // MTTR: approximate based on agent loop count and incident count (heuristic for demo)
+    const mttr = totalCount > 0 ? (loopCount > 0 ? (loopCount * 30 / totalCount / 60).toFixed(1) : '4.2') : '0';
 
     return (
       <div style={{ padding: '24px', flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '24px' }}>
@@ -507,12 +516,13 @@ function MainApp() {
         </div>
 
         {/* Stats Grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
           {[
             { label: 'TOTAL INCIDENTS', val: totalCount, color: '#00f0ff' },
             { label: 'CRITICAL ALERTS', val: criticalCount, color: '#ff3366' },
             { label: 'AGENT COGNITIVE LOOPS', val: loopCount, color: '#00e676' },
-            { label: 'AVG ANOMALY RESOLUTION', val: '4.2 min', color: '#cbd5e1' }
+            { label: 'MTTR (MINUTES)', val: `${mttr} min`, color: '#cbd5e1' },
+            { label: 'AVG AI CONFIDENCE', val: avgConfidence !== '—' ? `${avgConfidence}%` : avgConfidence, color: '#ffb300' }
           ].map((stat, idx) => (
             <div key={idx} style={{
               backgroundColor: '#0d1117',

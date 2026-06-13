@@ -1,12 +1,20 @@
 /* eslint-disable */
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Bell, Settings } from 'lucide-react';
 
 export default function TopBar({ loopCount = 0, incidentCount = 0, wsStatus = 'connected', onNotificationsClick, onSettingsClick, onProfileClick, activeTab = 'Dashboard', onTabChange }) {
   const tabs = ['Network', 'Telemetry', 'Schedules', 'Assets'];
   const activeTopTab = ['Telemetry', 'Schedules', 'Assets'].includes(activeTab) ? activeTab : 'Network';
-
   const isConnected = wsStatus === 'connected';
+
+  // Live countdown timer for next agent cycle (30s cycle)
+  const [cycleCountdown, setCycleCountdown] = useState(30);
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCycleCountdown(prev => prev <= 1 ? 30 : prev - 1);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <div style={{
@@ -137,6 +145,19 @@ export default function TopBar({ loopCount = 0, incidentCount = 0, wsStatus = 'c
           <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
             <span className="palantir-mono" style={{ fontSize: '10px', fontWeight: 600, color: '#5c7080', letterSpacing: '0.5px' }}>ANOMALIES:</span>
             <span className="palantir-mono" style={{ fontSize: '13px', fontWeight: 700, color: '#ff3366' }}>[{incidentCount < 10 ? '0' + incidentCount : incidentCount}]</span>
+          </div>
+
+          <div style={{ width: '1px', height: '14px', backgroundColor: '#1a2433' }}></div>
+
+          {/* Next agent cycle countdown */}
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
+            <span className="palantir-mono" style={{ fontSize: '10px', fontWeight: 600, color: '#5c7080', letterSpacing: '0.5px' }}>NEXT CYCLE:</span>
+            <span className="palantir-mono" style={{ 
+              fontSize: '13px', 
+              fontWeight: 700, 
+              color: cycleCountdown <= 5 ? '#ff3366' : '#ffb300',
+              transition: 'color 0.3s'
+            }}>{cycleCountdown}s</span>
           </div>
         </div>
 
