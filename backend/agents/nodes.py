@@ -26,17 +26,22 @@ twilio_token = os.getenv("TWILIO_AUTH_TOKEN", "mock_token")
 twilio_from = os.getenv("TWILIO_PHONE_NUMBER", "+1234567890")
 twilio_client = TwilioSMSClient(account_sid=twilio_sid, auth_token=twilio_token, from_number=twilio_from)
 
-# Shared log assistant that prints logs and broadcasts AGENT_LOG WebSocket events (ISSUE 4)
+# Shared log assistant that prints logs and broadcasts AGENT_LOG & AGENT_STATE_CHANGE WebSocket events
 async def log_agent(node_name: str, message: str):
     print(message)
     try:
+        await websocket_manager.broadcast(json.dumps({
+            "type": "AGENT_STATE_CHANGE",
+            "state": node_name,
+            "timestamp": datetime.utcnow().isoformat()
+        }))
         await websocket_manager.broadcast(json.dumps({
             "type": "AGENT_LOG",
             "message": f"[{datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')}] [{node_name}] {message}",
             "timestamp": datetime.utcnow().isoformat()
         }))
     except Exception as e:
-        logger.error(f"Failed to broadcast AGENT_LOG message: {e}")
+        logger.error(f"Failed to broadcast AGENT_LOG / AGENT_STATE_CHANGE message: {e}")
 
 async def ingest_node(state: AgentState) -> AgentState:
     try:

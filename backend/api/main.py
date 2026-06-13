@@ -3,6 +3,7 @@ import os
 import uvicorn
 from datetime import datetime
 from dotenv import load_dotenv
+from pydantic import BaseModel
 
 # Ensure env variables are loaded before imports
 env_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".env")
@@ -111,6 +112,14 @@ async def run_agent_loop():
                 result["loop_count"] = result.get("loop_count", 0) + 1
                 # Sync to global object
                 latest_agent_state.update(result)
+            
+            # Broadcast back to IDLE
+            import json
+            await websocket_manager.broadcast(json.dumps({
+                "type": "AGENT_STATE_CHANGE",
+                "state": "IDLE",
+                "timestamp": datetime.utcnow().isoformat()
+            }))
         except Exception as e:
             print(f"[RAILMIND] Agent loop error: {e}")
         finally:
@@ -267,6 +276,98 @@ async def get_telemetry_api():
         "mongodb_tasks": task_count
     }
 
+class SimulatedAnomaly(BaseModel):
+    train_number: str
+    anomaly_type: str
+    location: str
+    delay_minutes: int
+    severity: str
+
+@app.post("/api/simulate-anomaly")
+async def simulate_anomaly_endpoint(payload: SimulatedAnomaly):
+    try:
+        from ..services.railways_api import RAW_MOCK_TRAINS
+        train_info = None
+        for t in RAW_MOCK_TRAINS:
+            if t["train_number"] == payload.train_number:
+                train_info = t
+                break
+                
+        if not train_info:
+            train_info = {
+                "train_number": payload.train_number,
+                "train_name": f"Express {payload.train_number}",
+                "source": "NDLS",
+                "destination": "HWH",
+                "current_station": payload.location,
+                "status": "Delayed"
+            }
+            
+        injected_anomaly = {
+            "train_number": payload.train_number,
+            "train_name": train_info.get("train_name", f"Express {payload.train_number}"),
+            "anomaly_type": payload.anomaly_type,
+            "severity": payload.severity,
+            "location": payload.location,
+            "delay_minutes": payload.delay_minutes,
+            "current_station": payload.location,
+            "status": "cancelled" if payload.anomaly_type == "cancellation" else "delayed",
+            "source": train_info.get("source", "NDLS"),
+            "destination": train_info.get("destination", "HWH")
+        }
+        
+        # Override local train registry data for the ingestion node
+        # We also clear the processed_trains block so the anomaly check triggers
+        processed_trains = [x for x in latest_agent_state.get("processed_trains", []) if x != payload.train_number]
+        latest_agent_state["processed_trains"] = processed_trains
+        
+        initial_state = AgentState(
+            raw_train_data=[{
+                **train_info,
+                "delay_minutes": payload.delay_minutes,
+                "current_station": payload.location,
+                "status": "cancelled" if payload.anomaly_type == "cancellation" else "delayed",
+                "passenger_load": "overcrowded" if payload.anomaly_type == "overcrowding" else "normal"
+            }],
+            anomalies=[injected_anomaly],
+            claude_reasoning="",
+            reroute_plan=None,
+            department_tasks=[],
+            sms_alerts_sent=[],
+            incident_report=None,
+            loop_count=latest_agent_state.get("loop_count", 0),
+            should_continue=True,
+            last_api_call="Simulated Anomaly Injection",
+            railways_latency_ms=10,
+            ai_latency_ms=0,
+            processed_trains=processed_trains
+        )
+        
+        import uuid
+        thread_id = f"sim_{payload.train_number}_{uuid.uuid4().hex[:8]}"
+        config = {"configurable": {"thread_id": thread_id}, "recursion_limit": 20}
+        
+        async def run_simulated_graph():
+            try:
+                result = await railmind_graph.ainvoke(initial_state, config)
+                if result:
+                    result["loop_count"] = result.get("loop_count", 0) + 1
+                    latest_agent_state.update(result)
+                # Return back to IDLE state after execution
+                await asyncio.sleep(2.0)
+                import json
+                await websocket_manager.broadcast(json.dumps({
+                    "type": "AGENT_STATE_CHANGE",
+                    "state": "IDLE",
+                    "timestamp": datetime.utcnow().isoformat()
+                }))
+            except Exception as e:
+                print(f"[SIMULATOR] Error running simulated graph: {e}")
+                
+        asyncio.create_task(run_simulated_graph())
+        return {"status": "Anomaly injected, graph triggered", "anomaly": injected_anomaly}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to inject anomaly: {str(e)}")
 
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
