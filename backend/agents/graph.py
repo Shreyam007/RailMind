@@ -33,7 +33,7 @@ workflow.add_edge("reason_node", "supervisor_node")
 workflow.add_edge("reroute_node", "supervisor_node")
 workflow.add_edge("coordination_node", "supervisor_node")
 workflow.add_edge("alert_node", "supervisor_node")
-workflow.add_edge("report_node", "supervisor_node")
+workflow.add_edge("report_node", END)
 
 # Supervisor dynamically dispatches
 workflow.add_conditional_edges(
