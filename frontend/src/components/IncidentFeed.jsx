@@ -106,8 +106,41 @@ export default function IncidentFeed({ incidents = [], onApprove, onAcknowledge 
                     color: '#8a9ba8',
                     display: 'flex',
                     flexDirection: 'column',
-                    gap: '6px'
+                    gap: '8px'
                   }}>
+                    {/* AI Confidence Score */}
+                    {incident.confidence_score && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', paddingBottom: '6px', borderBottom: '1px solid #1a2433' }}>
+                        <span style={{ color: '#5c7080', fontSize: '9px', fontWeight: 600 }}>AI CONFIDENCE:</span>
+                        <span style={{
+                          padding: '2px 8px',
+                          backgroundColor: incident.confidence_score > 93 ? 'rgba(0,230,118,0.1)' : 'rgba(255,179,0,0.1)',
+                          border: `1px solid ${incident.confidence_score > 93 ? '#00e676' : '#ffb300'}`,
+                          color: incident.confidence_score > 93 ? '#00e676' : '#ffb300',
+                          fontSize: '10px',
+                          fontWeight: 700
+                        }}>
+                          {incident.confidence_score}%
+                        </span>
+                        <span style={{ color: '#5c7080', fontSize: '9px' }}>
+                          {incident.confidence_score > 95 ? '● HIGH CERTAINTY' : incident.confidence_score > 90 ? '● MEDIUM CERTAINTY' : '● MONITOR'}
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Agent Reasoning Chain */}
+                    {incident.reasoning_steps && incident.reasoning_steps.length > 0 && (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', paddingBottom: '6px', borderBottom: '1px solid #1a2433' }}>
+                        <span style={{ color: '#5c7080', fontSize: '9px', fontWeight: 600, marginBottom: '2px' }}>AGENT REASONING CHAIN:</span>
+                        {incident.reasoning_steps.map((step, i) => (
+                          <div key={i} style={{ color: '#5c7080', fontSize: '9px', paddingLeft: '4px', borderLeft: '2px solid #1a2433' }}>
+                            <span style={{ color: '#00f0ff' }}>{step.split(':')[0]}:</span>
+                            {step.split(':').slice(1).join(':')}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
                     {incident.reroute_plan && (
                       <div>
                         <span style={{ color: '#00f0ff', fontWeight: 600 }}>REROUTE COMMAND:</span> {incident.reroute_plan}

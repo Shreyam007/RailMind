@@ -125,6 +125,13 @@ async def detect_node(state: AgentState) -> AgentState:
         anomalies: List[TrainAnomaly] = []
         raw_data = state.get("raw_train_data", [])
         processed_trains = state.get("processed_trains", [])
+        
+        # Preserve custom simulated anomaly types if present
+        simulated_types = {}
+        for a in state.get("anomalies", []):
+            if "train_number" in a and "anomaly_type" in a:
+                simulated_types[a["train_number"]] = a["anomaly_type"]
+                
         for train in raw_data:
             train_num = train.get("train_number", "Unknown")
             if train_num in processed_trains:
@@ -134,6 +141,8 @@ async def detect_node(state: AgentState) -> AgentState:
             delay = train.get("delay_minutes", 0)
             load = train.get("passenger_load")
             status = str(train.get("status") or "").lower()
+            
+            simulated_type = simulated_types.get(train_num)
             
             # Rule 1: delay > 15 minutes
             if delay > 15:
@@ -150,7 +159,7 @@ async def detect_node(state: AgentState) -> AgentState:
                 anomalies.append({
                     "train_number": train_num,
                     "train_name": train_name,
-                    "anomaly_type": "delay",
+                    "anomaly_type": simulated_type or "delay",
                     "severity": severity,
                     "location": location,
                     "delay_minutes": delay,
@@ -166,7 +175,7 @@ async def detect_node(state: AgentState) -> AgentState:
                 anomalies.append({
                     "train_number": train_num,
                     "train_name": train_name,
-                    "anomaly_type": "overcrowding",
+                    "anomaly_type": simulated_type or "overcrowding",
                     "severity": "high",
                     "location": location,
                     "delay_minutes": delay,
@@ -182,7 +191,7 @@ async def detect_node(state: AgentState) -> AgentState:
                 anomalies.append({
                     "train_number": train_num,
                     "train_name": train_name,
-                    "anomaly_type": "cancellation",
+                    "anomaly_type": simulated_type or "cancellation",
                     "severity": "critical",
                     "location": location,
                     "delay_minutes": delay,
@@ -260,19 +269,31 @@ async def reroute_node(state: AgentState) -> AgentState:
                 target_station = "Varanasi"
 
             if start_station and target_station:
-                result = dijkstra_route_discovery(start_station, target_station)
+                # Bypassing the anomaly location
+                blocked = anomaly.get("location") or start_station
+                result = dijkstra_route_discovery(start_station, target_station, blocked_station=blocked)
+                # If path not found due to blockage, try standard routing
+                if result["status"] != "Success":
+                    result = dijkstra_route_discovery(start_station, target_station)
+
                 if result["status"] == "Success":
                     route_str = " -> ".join(result["route"])
-                    await log_agent("reroute_node", f"[RAILMIND] Route found: {route_str}")
-                    return {"reroute_plan": f"Dijkstra routed: {route_str} (ETA {result['cost']} mins)"}
+                    await log_agent("reroute_node", f"[RAILMIND] Dijkstra bypass found: {route_str}")
+                    return {
+                        "reroute_plan": f"Dijkstra detour bypass: {route_str} (ETA {result['cost']} mins)",
+                        "detour_route": result["route"]
+                    }
                 else:
                     status_msg = result.get("status", "Unknown status")
-                    await log_agent("reroute_node", f"[RAILMIND] No viable detour found: {status_msg}")
-                    state["reroute_plan"] = f"No reroute available: {status_msg}"
+                    await log_agent("reroute_node", f"[RAILMIND] No bypass route found: {status_msg}")
+                    return {
+                        "reroute_plan": f"No detour bypass available: {status_msg}",
+                        "detour_route": []
+                    }
     except Exception as e:
         logger.error(f"Error in reroute_node: {e}")
         await log_agent("reroute_node", f"[RAILMIND] [ERROR] Reroute node failed: {e}")
-    return {}
+    return {"detour_route": []}
 
 async def coordination_node(state: AgentState) -> AgentState:
     try:
@@ -454,14 +475,17 @@ async def report_node(state: AgentState) -> AgentState:
             "delay_minutes": delay_minutes,
             "severity": severity,
             "situation_summary": claude_response.get("situation_summary") or f"Train {train_number} {train_name} is running {delay_minutes} minutes behind schedule at {current_station}.",
-            "reroute_plan": claude_response.get("reroute_plan") or "Redirect affected trains via alternate route.",
+            "reroute_plan": state.get("reroute_plan") or claude_response.get("reroute_plan") or "Redirect affected trains via alternate route.",
             "maintenance_task": claude_response.get("maintenance_task") or "Inspect signaling hardware.",
             "operations_task": claude_response.get("operations_task") or "Execute scheduling adjustments.",
             "station_manager_task": claude_response.get("station_manager_task") or "Broadcast delay announcements.",
             "passenger_sms": claude_response.get("passenger_sms") or "Check platform screens for status updates.",
             "resolution_status": "pending",
             "departments_notified": ["maintenance", "operations", "station_manager"],
-            "sms_sent": len(state.get("sms_alerts_sent", []))
+            "sms_sent": len(state.get("sms_alerts_sent", [])),
+            "detour_route": state.get("detour_route") or [],
+            "confidence_score": claude_response.get("confidence_score") or None,
+            "reasoning_steps": claude_response.get("reasoning_steps") or []
         }
 
         # Check for duplicates in last 5 minutes before saving (ISSUE 2)

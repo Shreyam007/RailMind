@@ -71,6 +71,9 @@ function MainApp() {
   const [wsStatus, setWsStatus] = useState('reconnecting');
   const [logs, setLogs] = useState([]);
   const [agentState, setAgentState] = useState('IDLE');
+  const [commandText, setCommandText] = useState('');
+  const [commandResult, setCommandResult] = useState('');
+  const [smsLogs, setSmsLogs] = useState([]);
   
   // Modal Overlay States
   const [showSettings, setShowSettings] = useState(false);
@@ -127,7 +130,9 @@ function MainApp() {
           resolution_status: inc.resolution_status || 'pending',
           approved: inc.resolution_status === 'approved',
           departments: inc.departments_notified || [],
-          train_number: inc.train_number || 'Unknown'
+          train_number: inc.train_number || 'Unknown',
+          confidence_score: inc.confidence_score || null,
+          reasoning_steps: inc.reasoning_steps || []
         }));
         setIncidents(formatted);
         setIncidentCount(formatted.length);
@@ -203,7 +208,9 @@ function MainApp() {
               resolution_status: report.resolution_status || 'pending',
               approved: report.resolution_status === 'approved',
               departments: report.departments_notified || [],
-              train_number: report.train_number || 'Unknown'
+              train_number: report.train_number || 'Unknown',
+              confidence_score: report.confidence_score || null,
+              reasoning_steps: report.reasoning_steps || []
             };
 
             setIncidents(prev => {
@@ -213,6 +220,18 @@ function MainApp() {
             setIncidentCount(prev => prev + 1);
             if (report.loop_count !== undefined) {
               setLoopCount(report.loop_count);
+            }
+
+             if (report.passenger_sms) {
+              setSmsLogs(prev => {
+                const newLog = {
+                  to: "+919651058174 (Passenger)",
+                  body: report.passenger_sms,
+                  sid: `SMdemo_${Math.random().toString(36).substr(2, 9)}`
+                };
+                if (prev.some(l => l.body === newLog.body)) return prev;
+                return [newLog, ...prev];
+              });
             }
 
             fetchTasks();
@@ -943,6 +962,31 @@ function MainApp() {
     );
   };
 
+  const handleCommandSubmit = async (e) => {
+    e.preventDefault();
+    if (!commandText.trim()) return;
+    setCommandResult("Executing operational instruction...");
+    try {
+      const res = await fetch(`${API_BASE}/api/agent-command`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ command: commandText })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setCommandResult(data.response);
+        if (data.log) {
+          setLogs(prev => [...prev, { message: `[${new Date().toLocaleTimeString()}] ${data.log}` }].slice(-200));
+        }
+        setCommandText('');
+      } else {
+        setCommandResult("Error: Failed to process command.");
+      }
+    } catch (err) {
+      setCommandResult("Error: Connection lost.");
+    }
+  };
+
   const renderContent = () => {
     switch (activeTab) {
       case 'Dashboard':
@@ -957,8 +1001,130 @@ function MainApp() {
             }}>
               <div style={{ flex: 1, position: 'relative' }}>
                 <LiveMap trains={trains} incidents={incidents} />
+                
+                {/* Floating AI Command Terminal Overlay */}
+                <div style={{
+                  position: 'absolute',
+                  top: '16px',
+                  left: '16px',
+                  zIndex: 1000,
+                  width: '320px',
+                  backgroundColor: 'rgba(13, 17, 23, 0.92)',
+                  border: '1px solid #1a2433',
+                  borderRadius: '0px',
+                  padding: '14px',
+                  boxShadow: '0 4px 20px rgba(0,0,0,0.6)',
+                  backdropFilter: 'blur(4px)',
+                  fontFamily: "'JetBrains Mono', monospace"
+                }}>
+                  <h4 style={{ margin: '0 0 8px 0', fontSize: '9px', fontWeight: 700, color: '#00f0ff', letterSpacing: '1px' }}>
+                    RAILMIND COGNITIVE TERMINAL
+                  </h4>
+                  <form onSubmit={handleCommandSubmit} style={{ display: 'flex', gap: '8px' }}>
+                    <input
+                      type="text"
+                      value={commandText}
+                      onChange={(e) => setCommandText(e.target.value)}
+                      placeholder="Ask RailMind agent (e.g. bypass CNB)..."
+                      style={{
+                        flex: 1,
+                        backgroundColor: '#05070a',
+                        border: '1px solid #1a2433',
+                        color: '#cbd5e1',
+                        fontSize: '10px',
+                        padding: '6px 8px',
+                        fontFamily: 'inherit',
+                        outline: 'none',
+                        borderRadius: '0px'
+                      }}
+                    />
+                    <button
+                      type="submit"
+                      style={{
+                        backgroundColor: '#00f0ff',
+                        color: '#080a0d',
+                        border: 'none',
+                        fontSize: '9px',
+                        fontWeight: 700,
+                        padding: '6px 12px',
+                        cursor: 'pointer',
+                        borderRadius: '0px'
+                      }}
+                    >
+                      EXECUTE
+                    </button>
+                  </form>
+                  {commandResult && (
+                    <div style={{
+                      marginTop: '8px',
+                      padding: '8px',
+                      backgroundColor: 'rgba(0, 240, 255, 0.03)',
+                      border: '1px dashed rgba(0, 240, 255, 0.2)',
+                      fontSize: '9px',
+                      color: '#00f0ff',
+                      lineHeight: '1.4',
+                      maxHeight: '80px',
+                      overflowY: 'auto'
+                    }}>
+                      {commandResult}
+                    </div>
+                  )}
+                </div>
               </div>
-              <TaskBoard tasks={tasks} onResolve={handleResolve} />
+              
+              {/* TaskBoard & SMS Outbox side-by-side split */}
+              <div style={{ display: 'flex', borderTop: '1px solid #1a2433', height: '240px' }}>
+                <div style={{ flex: 2, overflowY: 'auto' }}>
+                  <TaskBoard tasks={tasks} onResolve={handleResolve} />
+                </div>
+                <div style={{
+                  flex: 1,
+                  backgroundColor: '#0d1117',
+                  borderLeft: '1px solid #1a2433',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  padding: '16px',
+                  overflow: 'hidden'
+                }}>
+                  <h3 className="palantir-mono" style={{ fontSize: '10px', fontWeight: 700, color: '#5c7080', letterSpacing: '1.5px', marginBottom: '8px' }}>
+                    PASSENGER SMS DISPATCH OUTBOX
+                  </h3>
+                  <div style={{
+                    flex: 1,
+                    backgroundColor: '#05070a',
+                    border: '1px solid #1a2433',
+                    padding: '10px',
+                    overflowY: 'auto',
+                    fontFamily: "'JetBrains Mono', monospace",
+                    fontSize: '9px',
+                    color: '#8a9ba8',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '6px'
+                  }}>
+                    {smsLogs.length === 0 ? (
+                      <div style={{ color: '#5c7080', fontStyle: 'italic' }}>[OUTBOX] Awaiting alert triggers...</div>
+                    ) : (
+                      smsLogs.map((log, idx) => (
+                        <div key={idx} style={{
+                          borderBottom: '1px solid #121820',
+                          paddingBottom: '4px',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '2px'
+                        }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', color: '#ffb300', fontWeight: 600 }}>
+                            <span>TO: {log.to}</span>
+                            <span style={{ color: '#00e676' }}>[SENT]</span>
+                          </div>
+                          <p style={{ margin: 0, color: '#cbd5e1' }}>{log.body}</p>
+                          <span style={{ fontSize: '8px', color: '#5c7080' }}>SID: {log.sid}</span>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              </div>
             </div>
             <IncidentFeed 
               incidents={incidents} 
