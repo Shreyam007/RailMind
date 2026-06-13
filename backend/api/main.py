@@ -121,15 +121,15 @@ async def startup_event():
     # Test connection on startup and clean collections:
     try:
         from ..services.db_client import client, db
-        await client.admin.command('ping')
+        await asyncio.wait_for(client.admin.command('ping'), timeout=2.0)
         print("[RAILMIND] MongoDB Atlas connected [OK]")
         
         # Cleanup incidents and tasks
-        await db.incidents.delete_many({})
-        await db.department_tasks.delete_many({})
+        await asyncio.wait_for(db.incidents.delete_many({}), timeout=2.0)
+        await asyncio.wait_for(db.department_tasks.delete_many({}), timeout=2.0)
         print("[RAILMIND] Cleared MongoDB incidents and tasks collections [OK]")
     except Exception as e:
-        print(f"[RAILMIND] MongoDB connection/cleanup failed: {e}")
+        print(f"[RAILMIND] MongoDB connection/cleanup failed or timed out: {e}")
 
     # Run the agent workflow loop asynchronously in the background on API startup
     asyncio.create_task(run_agent_loop())
