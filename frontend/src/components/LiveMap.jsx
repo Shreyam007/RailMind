@@ -225,8 +225,21 @@ export default function LiveMap({ trains = [], incidents = [] }) {
           />
         );
 
-        // 2. Draw Dijkstra Detour bypass route (solid neon green polyline arching around station)
-        if (inc.reroute_plan && inc.reroute_plan.toLowerCase().includes("detour") || inc.reroute_plan && inc.reroute_plan.toLowerCase().includes("bypass")) {
+        // 2. Draw Dijkstra Detour bypass route (solid neon green polyline connecting path stations)
+        if (inc.detour_route && inc.detour_route.length >= 2) {
+          const detourPositions = inc.detour_route
+            .map(code => STATION_COORDS[code])
+            .filter(coord => coord !== undefined);
+          if (detourPositions.length >= 2) {
+            detourElements.push(
+              <Polyline
+                key={`detour-${inc.id}-${idx}`}
+                positions={detourPositions}
+                pathOptions={{ color: '#00e676', weight: 4.0, opacity: 0.95, lineJoin: 'round' }}
+              />
+            );
+          }
+        } else if (inc.reroute_plan && (inc.reroute_plan.toLowerCase().includes("detour") || inc.reroute_plan.toLowerCase().includes("bypass"))) {
           detourElements.push(
             <Polyline
               key={`detour-${inc.id}-${idx}`}

@@ -47,6 +47,11 @@ export default function Sidebar({ activeTab = 'Dashboard', setActiveTab, agentSt
       location = "Patna";
       delayMinutes = 0;
       severity = "critical";
+    } else if (type === 'conflict') {
+      trainNumber = "12301";
+      location = "Prayagraj";
+      delayMinutes = 60;
+      severity = "high";
     }
 
     try {
@@ -279,6 +284,27 @@ export default function Sidebar({ activeTab = 'Dashboard', setActiveTab, agentSt
               }}
             >
               <Play size={10} /> OVERCROWD WAIT (BPL)
+            </button>
+            <button
+              onClick={() => handleSimulate('conflict')}
+              disabled={simulating}
+              className="palantir-mono"
+              style={{
+                width: '100%',
+                padding: '6px 12px',
+                fontSize: '9px',
+                fontWeight: 700,
+                backgroundColor: 'rgba(0, 230, 118, 0.04)',
+                border: '1px solid rgba(0, 230, 118, 0.3)',
+                color: '#00e676',
+                cursor: simulating ? 'not-allowed' : 'pointer',
+                textAlign: 'left',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}
+            >
+              <Play size={10} /> SELF-HEAL CONFLICT (ALD)
             </button>
           </div>
         </div>

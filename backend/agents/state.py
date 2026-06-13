@@ -41,3 +41,4 @@ class AgentState(TypedDict):
     next_node: str
     messages: Annotated[list, operator.add]
     tools_used: Annotated[List[str], append_to_list]
+    detour_route: List[str]
