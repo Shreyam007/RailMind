@@ -247,11 +247,15 @@ async def simulate_hero_api():
                 timeout=2.0
             )
         else:
-            db_client._write_fallback({"incidents": [], "department_tasks": []})
+            await db_client._write_fallback({"incidents": [], "department_tasks": []})
 
         latest_agent_state["loop_count"] = 0
         latest_agent_state["anomalies"] = []
+        latest_agent_state["claude_reasoning"] = ""
+        latest_agent_state["reroute_plan"] = None
         latest_agent_state["department_tasks"] = []
+        latest_agent_state["sms_alerts_sent"] = []
+        latest_agent_state["ai_latency_ms"] = 0
         latest_agent_state["processed_trains"] = [] # Fix priority 1
         print("[RAILMIND] Automatic demo cleanup successful. Starting hero scenario.")
     except Exception as e:
