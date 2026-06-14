@@ -174,7 +174,7 @@ const createWarningIcon = () => {
 };
 
 export default function LiveMap({ trains = [], incidents = [] }) {
-  const activeTrains = trains.length > 0 ? trains : [];
+  const activeTrains = trains?.length > 0 ? trains : [];
 
   // Generate polylines for regular rail network tracks
   const regularRoutes = RAIL_NETWORKS.map((route, rIdx) => {

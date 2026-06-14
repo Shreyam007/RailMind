@@ -4,7 +4,7 @@ import { MoreHorizontal, CheckCircle2, AlertTriangle } from 'lucide-react';
 
 export default function TaskBoard({ tasks = [], onResolve, fullScreen = false }) {
   // Setup default mock tasks if tasks list is empty
-  const activeTasks = tasks.length > 0 ? tasks : [
+  const activeTasks = tasks?.length > 0 ? tasks : [
     {
       id: "task_001",
       department: "maintenance",
@@ -43,6 +43,8 @@ export default function TaskBoard({ tasks = [], onResolve, fullScreen = false })
     let bg = 'rgba(255, 51, 102, 0.08)';
     let text = 'URGENT';
 
+    if (!urgency) return null;
+
     if (urgency.toLowerCase() === 'medium') {
       color = '#ffb300'; // Yellow
       bg = 'rgba(255, 179, 0, 0.08)';
@@ -62,7 +64,7 @@ export default function TaskBoard({ tasks = [], onResolve, fullScreen = false })
     } else if (urgency.toLowerCase() === 'critical') {
       color = '#ff3366'; // Dark Red
       bg = 'rgba(255, 51, 102, 0.08)';      text = 'CRITICAL';
-    } else if (normalizedUrgency === 'urgent') {
+    } else if (urgency.toLowerCase() === 'urgent') {
       text = 'URGENT';
     }
 

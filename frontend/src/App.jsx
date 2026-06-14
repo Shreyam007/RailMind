@@ -96,8 +96,9 @@ function MainApp() {
     const len = Math.min(incidents.length, 5);
     for (let i = 0; i < len; i++) {
       const inc = incidents[i];
+      if (!inc) continue;
       result.push(
-        <div key={inc.id} className="palantir-mono" style={{
+        <div key={inc.id || i} className="palantir-mono" style={{
           backgroundColor: '#121820',
           border: '1px solid #1a2433',
           padding: '10px 14px',
@@ -106,7 +107,7 @@ function MainApp() {
           color: '#cbd5e1'
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-            <span style={{ color: '#ff3366', fontWeight: 700 }}>{inc.severity.toUpperCase()}</span>
+            <span style={{ color: '#ff3366', fontWeight: 700 }}>{(inc.severity || "UNKNOWN").toUpperCase()}</span>
             <span style={{ color: '#5c7080' }}>{inc.timestamp}</span>
           </div>
           {inc.title}
@@ -1064,7 +1065,7 @@ function MainApp() {
                 }}></span>
               </div>
               <span className="palantir-mono" style={{ fontSize: '13px', color: s.isConnected ? '#00e676' : '#ff3366', fontWeight: 700 }}>
-                [ {s.status.toUpperCase()} ]
+                [ {(s.status || "UNKNOWN").toUpperCase()} ]
               </span>
             </div>
           ))}
