@@ -1213,7 +1213,7 @@ function MainApp() {
               </div>
               
               {/* TaskBoard & SMS Outbox side-by-side split */}
-              <div style={{ display: 'flex', borderTop: '1px solid #1a2433', height: '240px' }}>
+              <div style={{ display: 'flex', borderTop: '1px solid #1a2433', height: '220px' }}>
                 <div style={{ flex: 2, overflowY: 'auto' }}>
                   <TaskBoard tasks={tasks} onResolve={handleResolve} />
                 </div>
@@ -1223,7 +1223,7 @@ function MainApp() {
                   borderLeft: '1px solid #1a2433',
                   display: 'flex',
                   flexDirection: 'column',
-                  padding: '16px',
+                  padding: '12px',
                   overflow: 'hidden'
                 }}>
                   <h3 className="palantir-mono" style={{ fontSize: '11px', fontWeight: 700, color: '#6f8495', letterSpacing: '1.5px', marginBottom: '8px' }}>

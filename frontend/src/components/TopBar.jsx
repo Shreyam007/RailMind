@@ -78,7 +78,7 @@ export default function TopBar({ loopCount = 0, incidentCount = 0, wsStatus = 'c
         <div style={{ display: 'flex', alignItems: 'center', position: 'relative' }}>
           <input 
             type="text" 
-            placeholder="Search or Enter Command" 
+            placeholder="RailMind Command"
             className="palantir-mono"
             style={{
               backgroundColor: '#080a0d',
@@ -87,7 +87,7 @@ export default function TopBar({ loopCount = 0, incidentCount = 0, wsStatus = 'c
               color: '#f8fafc',
               padding: '6px 12px 6px 28px',
               fontSize: '11px',
-              width: '160px',
+              width: '150px',
               outline: 'none',
               transition: 'border-color 0.2s'
             }}

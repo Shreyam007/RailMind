@@ -89,7 +89,7 @@ export default function Sidebar({ activeTab = 'Dashboard', setActiveTab, agentSt
 
   return (
     <div style={{
-      width: '260px',
+      width: '234px',
       backgroundColor: '#0d1117',
       borderRight: '1px solid #1a2433',
       display: 'flex',

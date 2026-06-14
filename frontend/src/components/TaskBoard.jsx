@@ -86,13 +86,15 @@ export default function TaskBoard({ tasks = [], onResolve, fullScreen = false })
         }}>
           {columnTasks.length === 0 ? (
             <div className="palantir-mono" style={{
-              padding: '16px',
+              padding: '10px 12px',
               border: '1px dashed #1a2433',
-              color: '#5c7080',
+              color: '#6f8495',
               fontSize: '11px',
-              textAlign: 'center'
+              textAlign: 'center',
+              lineHeight: '1.5'
             }}>
-              NO ACTIVE DISPATCHES
+              <div style={{ color: '#8a9ba8', fontWeight: 600 }}>AWAITING DISPATCH ORDERS</div>
+              <div style={{ fontSize: '10px' }}>Monitoring active incidents...</div>
             </div>
           ) : columnTasks.map((task) => {
             const isResolved = task.status?.toLowerCase() === 'resolved' || task.urgency?.toLowerCase() === 'resolved';
