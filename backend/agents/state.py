@@ -6,6 +6,11 @@ def append_to_list(a: Optional[List], b: Optional[List]) -> List:
         a = []
     if b is None:
         b = []
+
+    # Handle specific CLEAR token to empty the list
+    if b and b[0] == "CLEAR":
+        return []
+
     return a + b
 
 class TrainAnomaly(TypedDict):
@@ -28,7 +33,7 @@ class AgentState(TypedDict):
     anomalies: Annotated[List[TrainAnomaly], append_to_list]
     claude_reasoning: str
     reroute_plan: Optional[str]
-    department_tasks: Annotated[List[DepartmentTask], append_to_list]
+    department_tasks: Annotated[List[DepartmentTask], operator.add]
     sms_alerts_sent: Annotated[List[str], append_to_list]
     incident_report: Optional[str]
     loop_count: int
@@ -40,5 +45,6 @@ class AgentState(TypedDict):
     target_trains: List[str]
     errors: Annotated[List[str], append_to_list]
     next_node: str
+    last_node_executed: str
     messages: Annotated[list, operator.add]
     tools_used: Annotated[List[str], append_to_list]
