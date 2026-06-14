@@ -51,7 +51,7 @@ export default function RouteIntelligence({ trains = [] }) {
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 8px', cursor: 'pointer', color: '#e2e8f0' }}>
               <ChevronDown size={14} style={{ color: '#5c7080' }} />
               <Folder size={14} style={{ color: '#00f0ff' }} />
-              <span className="palantir-mono" style={{ fontSize: '11px', fontWeight: 600 }}>Network</span>
+              <span className="palantir-mono" style={{ fontSize: '11px', fontWeight: 600 }}>Rail Network</span>
             </div>
             
             {/* Sector Folders */}
@@ -145,7 +145,7 @@ export default function RouteIntelligence({ trains = [] }) {
           backgroundColor: '#0d1117'
         }}>
           <div className="palantir-mono" style={{ fontSize: '11px', color: '#8a9ba8' }}>
-            Network &gt; {activeRoute.sector} &gt; <span style={{ color: '#00f0ff', fontWeight: 600 }}>{activeRoute.train}</span>
+            Rail Network &gt; {activeRoute.sector} &gt; <span style={{ color: '#00f0ff', fontWeight: 600 }}>{activeRoute.train}</span>
           </div>
           
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>

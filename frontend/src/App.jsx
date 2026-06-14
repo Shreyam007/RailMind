@@ -999,7 +999,7 @@ function MainApp() {
     }, []);
 
     if (loading && !telemetry) {
-      return <div className="palantir-mono" style={{ padding: '24px', color: '#8a9ba8', fontSize: '12px' }}>[ RETRIEVING TELEMETRY DATA... ]</div>;
+      return <div className="palantir-mono" style={{ padding: '24px', color: '#8a9ba8', fontSize: '12px' }}>[ Retrieving Sensor Data... ]</div>;
     }
 
     const metrics = [
@@ -1013,11 +1013,11 @@ function MainApp() {
     ];
 
     return (
-      <div style={{ padding: '24px', flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
-            <h2 className="palantir-mono" style={{ fontSize: '18px', fontWeight: 600, color: '#f8fafc' }}>SYSTEM METRICS TELEMETRY</h2>
-            <p className="palantir-mono" style={{ fontSize: '11px', color: '#5c7080' }}>REAL-TIME HARDWARE & MULTI-AGENT STATE DATA</p>
+            <h2 className="palantir-mono" style={{ fontSize: '18px', fontWeight: 600, color: '#f8fafc' }}>System Metrics & Sensor Data</h2>
+            <p className="palantir-mono" style={{ fontSize: '11px', color: '#5c7080' }}>Real-time Hardware & Multi-agent State Data</p>
           </div>
           <span className="palantir-mono" style={{ fontSize: '10px', color: '#00f0ff', border: '1px solid rgba(0, 240, 255, 0.2)', padding: '4px 8px' }}>
             REFRESH IN: {nextRefresh}S
@@ -1078,15 +1078,15 @@ function MainApp() {
     }, []);
 
     if (loading && scheduleTrains.length === 0) {
-      return <div className="palantir-mono" style={{ padding: '24px', color: '#8a9ba8', fontSize: '12px' }}>[ RETRIEVING LIVE TIMETABLES... ]</div>;
+      return <div className="palantir-mono" style={{ padding: '24px', color: '#8a9ba8', fontSize: '12px' }}>[ Retrieving Timetable... ]</div>;
     }
 
     return (
-      <div style={{ padding: '24px', flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
-            <h2 className="palantir-mono" style={{ fontSize: '18px', fontWeight: 600, color: '#f8fafc' }}>NETWORK TRACK SCHEDULES</h2>
-            <p className="palantir-mono" style={{ fontSize: '11px', color: '#5c7080' }}>LIVE ROUTE TIMETABLES FEED</p>
+            <h2 className="palantir-mono" style={{ fontSize: '18px', fontWeight: 600, color: '#f8fafc' }}>Rail Network Timetable</h2>
+            <p className="palantir-mono" style={{ fontSize: '11px', color: '#5c7080' }}>Live Route Timetables Feed</p>
           </div>
           <span className="palantir-mono" style={{ fontSize: '10px', color: '#ffb300', border: '1px solid rgba(255, 179, 0, 0.2)', padding: '4px 8px' }}>
             AUTO-REFRESH IN: {nextRefresh}S
@@ -1174,7 +1174,7 @@ function MainApp() {
     }, []);
 
     if (loading && !status) {
-      return <div className="palantir-mono" style={{ padding: '24px', color: '#8a9ba8', fontSize: '12px' }}>[ RESOLVING SYSTEM ASSETS CONNECTION MAP... ]</div>;
+      return <div className="palantir-mono" style={{ padding: '24px', color: '#8a9ba8', fontSize: '12px' }}>[ Connecting to System Fleet... ]</div>;
     }
 
     const services = [
@@ -1186,11 +1186,11 @@ function MainApp() {
     ];
 
     return (
-      <div style={{ padding: '24px', flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '24px' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
-            <h2 className="palantir-mono" style={{ fontSize: '18px', fontWeight: 600, color: '#f8fafc' }}>SYSTEM REGISTRY & ASSETS</h2>
-            <p className="palantir-mono" style={{ fontSize: '11px', color: '#5c7080' }}>NODE NETWORKS & ASSET DEPLOYMENTS STATUS</p>
+            <h2 className="palantir-mono" style={{ fontSize: '18px', fontWeight: 600, color: '#f8fafc' }}>System Registry & Fleet</h2>
+            <p className="palantir-mono" style={{ fontSize: '11px', color: '#5c7080' }}>Node Networks & Fleet Status</p>
           </div>
           <span className="palantir-mono" style={{ fontSize: '10px', color: '#00e676', border: '1px solid rgba(0, 230, 118, 0.2)', padding: '4px 8px' }}>
             HEARTBEAT IN: {nextRefresh}S
@@ -1742,13 +1742,13 @@ function MainApp() {
       case 'Logs':
         return <LogsView logs={logs} onClear={() => setLogs([])} />;
 
-      case 'Telemetry':
-        return <TelemetryView />;
+      case 'Sensor Data':
+        return <RouteIntelligence trains={trains} />;
 
-      case 'Schedules':
+      case 'Timetable':
         return <SchedulesView />;
 
-      case 'Assets':
+      case 'Fleet':
         return <AssetsView />;
 
       default:
@@ -1770,7 +1770,7 @@ function MainApp() {
         wsStatus={wsStatus} 
         activeTab={activeTab}
         onTabChange={(tab) => {
-          if (tab === 'Network') {
+          if (tab === 'Rail Network') {
             setActiveTab('Dashboard');
           } else {
             setActiveTab(tab);

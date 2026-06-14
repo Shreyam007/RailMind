@@ -33,6 +33,7 @@ workflow.add_edge("detect_node", "predict_node")
 workflow.add_edge("predict_node", "supervisor_node")
 
 # All worker nodes return back to the supervisor
+workflow.add_edge("detect_node", "supervisor_node")
 workflow.add_edge("reason_node", "supervisor_node")
 workflow.add_edge("reroute_node", "supervisor_node")
 workflow.add_edge("coordination_node", "supervisor_node")
@@ -44,6 +45,7 @@ workflow.add_conditional_edges(
     "supervisor_node",
     route_from_supervisor,
     {
+        "detect_node": "detect_node",
         "reason_node": "reason_node",
         "reroute_node": "reroute_node",
         "coordination_node": "coordination_node",

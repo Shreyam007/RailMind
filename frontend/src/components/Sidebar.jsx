@@ -4,16 +4,16 @@ import { LayoutDashboard, Map, BellRing, ClipboardList, BarChart3, HelpCircle, F
 
 export default function Sidebar({ activeTab = 'Dashboard', setActiveTab, agentState = 'IDLE' }) {
   const menuItems = [
-    { id: 'Dashboard', name: 'DASHBOARD', icon: LayoutDashboard },
-    { id: 'Live Map', name: 'LIVE MAP', icon: Map },
-    { id: 'Incident Feed', name: 'INCIDENT FEED', icon: BellRing },
-    { id: 'Task Board', name: 'TASK BOARD', icon: ClipboardList },
-    { id: 'Analytics', name: 'ANALYTICS', icon: BarChart3 }
+    { id: 'Dashboard', name: 'Overview', icon: LayoutDashboard },
+    { id: 'Live Map', name: 'Real-Time Map', icon: Map },
+    { id: 'Incident Feed', name: 'Incident Alerts', icon: BellRing },
+    { id: 'Task Board', name: 'Tasks', icon: ClipboardList },
+    { id: 'Analytics', name: 'Reports', icon: BarChart3 }
   ];
 
   const bottomItems = [
-    { id: 'Support', name: 'SUPPORT // HELP', icon: HelpCircle },
-    { id: 'Logs', name: 'SYSTEM LOGS', icon: FileClock }
+    { id: 'Support', name: 'Help & Support', icon: HelpCircle },
+    { id: 'Logs', name: 'System Events', icon: FileClock }
   ];
 
   const [simulating, setSimulating] = useState(false);

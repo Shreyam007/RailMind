@@ -547,19 +547,19 @@ export default function IncidentFeed({ incidents = [], onApprove, onOverride, on
                     </>
                   )}
                   <button
-                    onClick={() => toggleExpand(incident.id)}
-                    style={{
-                      padding: '4px 8px',
-                      backgroundColor: '#1a2433',
-                      color: '#cbd5e1',
-                      border: 'none',
-                      fontSize: '9px',
-                      fontWeight: '800',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    {isExpanded ? 'COLLAPSE' : 'EXPAND'}
-                  </button>
+                     onClick={() => toggleExpand(incident.id)}
+                     style={{
+                       padding: '4px 8px',
+                       backgroundColor: '#1a2433',
+                       color: '#cbd5e1',
+                       border: 'none',
+                       fontSize: '9px',
+                       fontWeight: '800',
+                       cursor: 'pointer'
+                     }}
+                   >
+                     {isExpanded ? 'COLLAPSE' : 'EXPAND'}
+                   </button>
                 </div>
 
                 {/* Expandable description section */}

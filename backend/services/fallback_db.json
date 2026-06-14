@@ -789,6 +789,15 @@
       "action_required": "Emergency dispatch action",
       "status": "pending",
       "timestamp": "2026-06-14 11:00:25.787616"
+    },
+    {
+      "incident_id": "d2a5da73-af9d-4ad1-8b31-4531c644a3b8",
+      "department": "maintenance",
+      "task_description": "Platform inspection CNB",
+      "urgency": "critical",
+      "action_required": "Emergency dispatch action",
+      "status": "pending",
+      "timestamp": "2026-06-14 12:30:22.313597"
     }
   ],
   "agent_memory": []
