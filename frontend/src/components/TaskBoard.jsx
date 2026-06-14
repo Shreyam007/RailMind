@@ -3,33 +3,7 @@ import React from 'react';
 import { MoreHorizontal, CheckCircle2, AlertTriangle } from 'lucide-react';
 
 export default function TaskBoard({ tasks = [], onResolve, fullScreen = false }) {
-  // Setup default mock tasks if tasks list is empty
-  const activeTasks = tasks?.length > 0 ? tasks : [
-    {
-      id: "task_001",
-      department: "maintenance",
-      task_description: "Engine Check - Train 402",
-      urgency: "urgent",
-      action_required: "DUE: 15:00",
-      detail: "Anomaly detected in propulsion system. Immediate action required."
-    },
-    {
-      id: "task_002",
-      department: "operations",
-      task_description: "Signal Calibration - Route 7",
-      urgency: "medium",
-      action_required: "ASSIGNED: ALPHA-9",
-      detail: "Routine calibration needed for optimal traffic flow. No immediate impact."
-    },
-    {
-      id: "task_003",
-      department: "station_manager",
-      task_description: "Platform 4 Clearance",
-      urgency: "resolved",
-      action_required: "COMPLETED 10:55",
-      detail: "Passenger crowd dissipated, platform cleared for next service."
-    }
-  ];
+  const activeTasks = Array.isArray(tasks) ? tasks : [];
   // Group tasks by department
   const maintenanceTasks = activeTasks.filter(t => t.department?.toLowerCase() === 'maintenance');
   const operationsTasks = activeTasks.filter(t => t.department?.toLowerCase() === 'operations');
@@ -95,7 +69,7 @@ export default function TaskBoard({ tasks = [], onResolve, fullScreen = false })
         borderRight: '1px solid #1a2433'
       }}>
         <h3 className="palantir-mono" style={{
-          fontSize: '10px',
+          fontSize: '11px',
           fontWeight: 600,
           color: '#5c7080',
           letterSpacing: '1px',
@@ -110,7 +84,17 @@ export default function TaskBoard({ tasks = [], onResolve, fullScreen = false })
           gap: '8px',
           overflowY: 'auto'
         }}>
-          {columnTasks.map((task) => {
+          {columnTasks.length === 0 ? (
+            <div className="palantir-mono" style={{
+              padding: '16px',
+              border: '1px dashed #1a2433',
+              color: '#5c7080',
+              fontSize: '11px',
+              textAlign: 'center'
+            }}>
+              NO ACTIVE DISPATCHES
+            </div>
+          ) : columnTasks.map((task) => {
             const isResolved = task.status?.toLowerCase() === 'resolved' || task.urgency?.toLowerCase() === 'resolved';
 
             return (
@@ -207,22 +191,6 @@ export default function TaskBoard({ tasks = [], onResolve, fullScreen = false })
                     >
                       Action
                     </button>
-                    <button 
-                      className="palantir-mono"
-                      style={{
-                        flex: 1,
-                        backgroundColor: '#1c2430',
-                        border: '1px solid #1a2433',
-                        color: '#e2e8f0',
-                        fontSize: '10px',
-                        padding: '6px 0',
-                        cursor: 'pointer',
-                        borderRadius: '2px',
-                        fontWeight: 600
-                      }}
-                    >
-                      Assign
-                    </button>
                   </div>
                 ) : (
                   <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
@@ -271,7 +239,7 @@ export default function TaskBoard({ tasks = [], onResolve, fullScreen = false })
         justifyContent: 'space-between',
         alignItems: 'center'
       }}>
-        <h2 className="palantir-mono" style={{ fontSize: '11px', fontWeight: 600, color: '#e2e8f0', letterSpacing: '1px' }}>
+        <h2 className="palantir-mono" style={{ fontSize: '12px', fontWeight: 600, color: '#e2e8f0', letterSpacing: '1px' }}>
           CONTROL // DEPARTMENTAL DISPATCH
         </h2>
         

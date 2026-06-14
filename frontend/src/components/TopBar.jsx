@@ -24,22 +24,25 @@ export default function TopBar({ loopCount = 0, incidentCount = 0, wsStatus = 'c
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'space-between',
-      padding: '0 24px',
-      flexShrink: 0
+      padding: '0 16px',
+      flexShrink: 0,
+      gap: '16px',
+      overflow: 'hidden'
     }}>
       {/* Left section: Logo & Nav tabs */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '32px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '20px', minWidth: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
           <span className="palantir-mono" style={{
-            fontSize: '18px',
+            fontSize: '16px',
             fontWeight: 700,
             color: '#e2e8f0', 
-            letterSpacing: '1px'
+            letterSpacing: '1px',
+            whiteSpace: 'nowrap'
           }}>RAILMIND <span style={{ color: '#5c7080', fontWeight: 500 }}>// COMMAND CENTER</span></span>
         </div>
         
         {/* Nav tabs */}
-        <div style={{ display: 'flex', gap: '24px' }}>
+        <div style={{ display: 'flex', gap: '16px', flexShrink: 0 }}>
           {tabs.map((tab) => {
             const isActive = tab === activeTopTab;
             return (
@@ -69,7 +72,7 @@ export default function TopBar({ loopCount = 0, incidentCount = 0, wsStatus = 'c
       </div>
 
       {/* Right section: System state indicators & settings */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexShrink: 0 }}>
         
         {/* Search Bar */}
         <div style={{ display: 'flex', alignItems: 'center', position: 'relative' }}>
@@ -84,7 +87,7 @@ export default function TopBar({ loopCount = 0, incidentCount = 0, wsStatus = 'c
               color: '#f8fafc',
               padding: '6px 12px 6px 28px',
               fontSize: '11px',
-              width: '180px',
+              width: '160px',
               outline: 'none',
               transition: 'border-color 0.2s'
             }}
@@ -106,8 +109,8 @@ export default function TopBar({ loopCount = 0, incidentCount = 0, wsStatus = 'c
           backgroundColor: '#080a0d',
           border: '1px solid #1a2433',
           borderRadius: '2px',
-          padding: '6px 14px',
-          gap: '16px'
+          padding: '6px 10px',
+          gap: '12px'
         }}>
           {/* LIVE/OFFLINE status */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>

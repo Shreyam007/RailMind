@@ -96,13 +96,13 @@ export default function Sidebar({ activeTab = 'Dashboard', setActiveTab, agentSt
       flexDirection: 'column',
       justifyContent: 'space-between',
       height: '100%',
-      padding: '24px 0 16px 0',
+      padding: '16px 0 12px 0',
       flexShrink: 0,
       overflowY: 'auto'
     }}>
       <div>
         {/* Header */}
-        <div style={{ padding: '0 24px 20px 24px', borderBottom: '1px solid #1a2433' }}>
+        <div style={{ padding: '0 20px 14px 20px', borderBottom: '1px solid #1a2433' }}>
           <h2 className="palantir-mono" style={{ fontSize: '15px', fontWeight: 600, color: '#e2e8f0', letterSpacing: '1px' }}>SYS // ALPHA</h2>
           <span className="palantir-mono" style={{ fontSize: '10px', color: '#00f0ff', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '4px' }}>
             <Radio size={10} style={{ animation: 'pulse-live 1s infinite' }} />
@@ -111,7 +111,7 @@ export default function Sidebar({ activeTab = 'Dashboard', setActiveTab, agentSt
         </div>
 
         {/* Navigation */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', padding: '16px 12px 16px 12px', borderBottom: '1px solid #1a2433' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', padding: '10px 12px', borderBottom: '1px solid #1a2433' }}>
           {menuItems.map((item) => {
             const Icon = item.icon;
             const isActive = activeTab === item.id;
@@ -124,7 +124,7 @@ export default function Sidebar({ activeTab = 'Dashboard', setActiveTab, agentSt
                   display: 'flex',
                   alignItems: 'center',
                   gap: '12px',
-                  padding: '10px 16px',
+                  padding: '8px 16px',
                   backgroundColor: isActive ? '#121820' : 'transparent',
                   border: 'none',
                   borderLeft: isActive ? '3px solid #00f0ff' : '3px solid transparent',
@@ -146,11 +146,11 @@ export default function Sidebar({ activeTab = 'Dashboard', setActiveTab, agentSt
         </div>
 
         {/* Live Agent HUD */}
-        <div style={{ padding: '16px 20px', borderBottom: '1px solid #1a2433' }}>
-          <h3 className="palantir-mono" style={{ fontSize: '9px', fontWeight: 700, color: '#5c7080', letterSpacing: '1.5px', marginBottom: '12px' }}>
+        <div style={{ padding: '12px 20px', borderBottom: '1px solid #1a2433' }}>
+          <h3 className="palantir-mono" style={{ fontSize: '10px', fontWeight: 700, color: '#6f8495', letterSpacing: '1.5px', marginBottom: '10px' }}>
             COGNITIVE AGENT HUD
           </h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
             {HUD_STAGES.map(stage => {
               const isActive = agentState === stage.id;
               return (
@@ -164,7 +164,7 @@ export default function Sidebar({ activeTab = 'Dashboard', setActiveTab, agentSt
                     animation: isActive ? 'pulse-live 1s infinite' : 'none'
                   }}></span>
                   <span className="palantir-mono" style={{
-                    fontSize: '9px',
+                    fontSize: '10px',
                     fontWeight: 700,
                     color: isActive ? '#00e676' : '#5c7080',
                     letterSpacing: '0.5px'
@@ -183,9 +183,9 @@ export default function Sidebar({ activeTab = 'Dashboard', setActiveTab, agentSt
               alignItems: 'center', 
               gap: '6px' 
             }}>
-              <span className="palantir-mono" style={{ fontSize: '9px', color: '#8a9ba8' }}>STATE:</span>
+              <span className="palantir-mono" style={{ fontSize: '10px', color: '#8a9ba8' }}>STATE:</span>
               <span className="palantir-mono" style={{ 
-                fontSize: '9px', 
+                fontSize: '10px',
                 fontWeight: 700, 
                 color: agentState === 'IDLE' ? '#5c7080' : '#00f0ff' 
               }}>
@@ -196,11 +196,11 @@ export default function Sidebar({ activeTab = 'Dashboard', setActiveTab, agentSt
         </div>
 
         {/* Tactical Simulation Panel */}
-        <div style={{ padding: '16px 20px', borderBottom: '1px solid #1a2433' }}>
-          <h3 className="palantir-mono" style={{ fontSize: '9px', fontWeight: 700, color: '#5c7080', letterSpacing: '1.5px', marginBottom: '12px' }}>
+        <div style={{ padding: '12px 20px', borderBottom: '1px solid #1a2433' }}>
+          <h3 className="palantir-mono" style={{ fontSize: '10px', fontWeight: 700, color: '#6f8495', letterSpacing: '1.5px', marginBottom: '10px' }}>
             TACTICAL SIMULATION PANEL
           </h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
             <button
               onClick={() => handleSimulate('signal_failure')}
               disabled={simulating}
@@ -208,7 +208,7 @@ export default function Sidebar({ activeTab = 'Dashboard', setActiveTab, agentSt
               style={{
                 width: '100%',
                 padding: '6px 12px',
-                fontSize: '9px',
+                fontSize: '10px',
                 fontWeight: 700,
                 backgroundColor: 'rgba(255, 179, 0, 0.04)',
                 border: '1px solid rgba(255, 179, 0, 0.3)',

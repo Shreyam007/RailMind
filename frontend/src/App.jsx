@@ -1226,7 +1226,7 @@ function MainApp() {
                   padding: '16px',
                   overflow: 'hidden'
                 }}>
-                  <h3 className="palantir-mono" style={{ fontSize: '10px', fontWeight: 700, color: '#5c7080', letterSpacing: '1.5px', marginBottom: '8px' }}>
+                  <h3 className="palantir-mono" style={{ fontSize: '11px', fontWeight: 700, color: '#6f8495', letterSpacing: '1.5px', marginBottom: '8px' }}>
                     PASSENGER SMS DISPATCH OUTBOX
                   </h3>
                   <div style={{
@@ -1236,7 +1236,7 @@ function MainApp() {
                     padding: '10px',
                     overflowY: 'auto',
                     fontFamily: "'JetBrains Mono', monospace",
-                    fontSize: '9px',
+                    fontSize: '10px',
                     color: '#8a9ba8',
                     display: 'flex',
                     flexDirection: 'column',
