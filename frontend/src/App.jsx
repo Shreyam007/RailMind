@@ -86,6 +86,7 @@ function MainApp() {
   const [commandText, setCommandText] = useState('');
   const [commandResult, setCommandResult] = useState('');
   const [smsLogs, setSmsLogs] = useState([]);  
+  const [isHeroRunning, setIsHeroRunning] = useState(() => readStoredState('railmind_hero_running', false));
   // Modal Overlay States
   const [showSettings, setShowSettings] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
