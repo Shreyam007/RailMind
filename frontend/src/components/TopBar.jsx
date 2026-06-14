@@ -2,19 +2,10 @@
 import React, { useState, useEffect } from 'react';
 import { Bell, Settings } from 'lucide-react';
 
-export default function TopBar({ loopCount = 0, incidentCount = 0, wsStatus = 'connected', onNotificationsClick, onSettingsClick, onProfileClick, activeTab = 'Dashboard', onTabChange }) {
+export default function TopBar({ loopCount = 0, incidentCount = 0, wsStatus = 'connected', onNotificationsClick, onSettingsClick, onProfileClick, activeTab = 'Dashboard', onTabChange, liveFlash = false, cycleCountdown = 30 }) {
   const tabs = ['Network', 'Telemetry', 'Schedules', 'Assets'];
   const activeTopTab = ['Telemetry', 'Schedules', 'Assets'].includes(activeTab) ? activeTab : 'Network';
   const isConnected = wsStatus === 'connected';
-
-  // Live countdown timer for next agent cycle (30s cycle)
-  const [cycleCountdown, setCycleCountdown] = useState(30);
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCycleCountdown(prev => prev <= 1 ? 30 : prev - 1);
-    }, 1000);
-    return () => clearInterval(interval);
-  }, []);
 
   return (
     <div style={{
@@ -112,7 +103,7 @@ export default function TopBar({ loopCount = 0, incidentCount = 0, wsStatus = 'c
           {/* LIVE/OFFLINE status */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span 
-              className={isConnected ? "pulse-dot-cyan" : ""} 
+              className={`${isConnected ? "pulse-dot-cyan" : ""} ${liveFlash ? "flash-active-trigger" : ""}`} 
               style={{
                 display: 'inline-block',
                 width: '6px',

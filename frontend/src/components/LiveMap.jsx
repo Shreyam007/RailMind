@@ -1,6 +1,6 @@
 /* eslint-disable */
 import React from 'react';
-import { MapContainer, TileLayer, Marker, Popup, ZoomControl, Polyline } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, ZoomControl, Polyline, Tooltip } from 'react-leaflet';
 import L from 'leaflet';
 
 // Complete Indian Railway Station coordinates matching railways_api.py
@@ -173,6 +173,78 @@ const createWarningIcon = () => {
   });
 };
 
+function AnimatedMarker({ position, icon, children, ...props }) {
+  const [currentPos, setCurrentPos] = React.useState(position);
+  const prevPosRef = React.useRef(position);
+  const targetPosRef = React.useRef(position);
+  const animationRef = React.useRef(null);
+  const markerRef = React.useRef(null);
+
+  React.useEffect(() => {
+    // If target position changes
+    if (position[0] !== targetPosRef.current[0] || position[1] !== targetPosRef.current[1]) {
+      prevPosRef.current = targetPosRef.current;
+      targetPosRef.current = position;
+      
+      const startTime = performance.now();
+      const duration = 2500; // interpolate smoothly over 2.5 seconds
+
+      const animate = (time) => {
+        const elapsed = time - startTime;
+        const progress = Math.min(elapsed / duration, 1.0);
+        // Easing function (easeOutCubic)
+        const easedProgress = 1 - Math.pow(1 - progress, 3);
+
+        const lat = prevPosRef.current[0] + (targetPosRef.current[0] - prevPosRef.current[0]) * easedProgress;
+        const lng = prevPosRef.current[1] + (targetPosRef.current[1] - prevPosRef.current[1]) * easedProgress;
+        
+        const nextPos = [lat, lng];
+        setCurrentPos(nextPos);
+
+        if (markerRef.current) {
+          markerRef.current.setLatLng(nextPos);
+        }
+
+        if (progress < 1.0) {
+          animationRef.current = requestAnimationFrame(animate);
+        }
+      };
+
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+      }
+      animationRef.current = requestAnimationFrame(animate);
+    } else {
+      // Direct set just in case
+      setCurrentPos(position);
+      if (markerRef.current) {
+        markerRef.current.setLatLng(position);
+      }
+    }
+  }, [position]);
+
+  React.useEffect(() => {
+    return () => {
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+      }
+    };
+  }, []);
+
+  return (
+    <Marker 
+      ref={(ref) => {
+        markerRef.current = ref;
+      }}
+      position={currentPos} 
+      icon={icon} 
+      {...props}
+    >
+      {children}
+    </Marker>
+  );
+}
+
 export default function LiveMap({ trains = [], incidents = [] }) {
   const activeTrains = trains.length > 0 ? trains : [];
 
@@ -330,11 +402,36 @@ export default function LiveMap({ trains = [], incidents = [] }) {
           const markerIcon = createCustomMarker(train.status?.toLowerCase(), train.delay_minutes);
 
           return (
-            <Marker 
+            <AnimatedMarker 
               key={train.train_number || idx} 
               position={position}
               icon={markerIcon}
             >
+              <Tooltip direction="top" offset={[0, -10]} opacity={0.95} sticky>
+                <div style={{
+                  padding: '6px 10px',
+                  backgroundColor: '#0d1117',
+                  color: '#e2e8f0',
+                  fontFamily: "'JetBrains Mono', monospace",
+                  border: `1px solid ${isDelayed ? '#ffb300' : '#00f0ff'}`,
+                  boxShadow: `0 0 8px ${isDelayed ? 'rgba(255,179,0,0.15)' : 'rgba(0,240,255,0.15)'}`,
+                  fontSize: '10px',
+                  lineHeight: '1.4'
+                }}>
+                  <div style={{ fontWeight: 'bold', color: '#fff', marginBottom: '4px', borderBottom: '1px solid #1a2433', paddingBottom: '2px' }}>
+                    {train.train_name || 'Express Train'} ({train.train_number})
+                  </div>
+                  <div>Speed: <span style={{ color: '#00f0ff' }}>{train.speed || '82 km/h'}</span></div>
+                  <div>Delay: <span style={{ color: isDelayed ? '#ffb300' : '#00e676' }}>
+                    {train.delay_minutes > 0 ? `${train.delay_minutes} mins` : 'On Time'}
+                  </span></div>
+                  <div>Status: <span style={{ textTransform: 'uppercase', color: isDelayed ? '#ff3366' : '#00e676' }}>{train.status || 'Active'}</span></div>
+                  <div style={{ color: '#5c7080', fontSize: '9px', marginTop: '4px' }}>
+                    Last Scanned: Just now
+                  </div>
+                </div>
+              </Tooltip>
+
               <Popup closeButton={false} minWidth={240}>
                 <div style={{
                   padding: '12px',
@@ -385,7 +482,7 @@ export default function LiveMap({ trains = [], incidents = [] }) {
                   </div>
                 </div>
               </Popup>
-            </Marker>
+            </AnimatedMarker>
           );
         })}
       </MapContainer>

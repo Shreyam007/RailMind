@@ -107,6 +107,16 @@ async def run_agent_loop():
                 result["loop_count"] = result.get("loop_count", 0) + 1
                 # Sync to global object
                 latest_agent_state.update(result)
+                
+                # Broadcast LOOP_UPDATE via WebSocket
+                import json
+                await websocket_manager.broadcast(json.dumps({
+                    "type": "LOOP_UPDATE",
+                    "loop_count": latest_agent_state["loop_count"],
+                    "last_run": datetime.utcnow().isoformat(),
+                    "trains_monitored": len(latest_agent_state.get("raw_train_data", [])),
+                    "anomalies_found": len(latest_agent_state.get("anomalies", []))
+                }))
             
             # Broadcast back to IDLE
             import json
@@ -118,7 +128,7 @@ async def run_agent_loop():
         except Exception as e:
             print(f"[RAILMIND] Agent loop error: {e}")
         finally:
-            await asyncio.sleep(60)  # Wait 60 seconds between loops (NOT 1s, NOT continuous)
+            await asyncio.sleep(30)  # Wait 30 seconds between loops (NOT 1s, NOT continuous)
 
 @app.on_event("startup")
 async def startup_event():
@@ -213,6 +223,63 @@ async def approve_incident_api(id: str, admin: str = Depends(verify_admin)):
         return {"status": "approved", "modified_count": modified_count}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+class OverridePayload(BaseModel):
+    decision: str
+
+# REST Endpoint: POST /api/incidents/{id}/override - Human Override
+@app.post("/api/incidents/{id}/override")
+async def override_incident_api(id: str, payload: OverridePayload, admin: str = Depends(verify_admin)):
+    try:
+        modified_count = await db_client.override_incident(id, payload.decision)
+        
+        # Broadcast the log message via WebSockets
+        from ..api.websocket import websocket_manager
+        import json
+        await websocket_manager.broadcast(json.dumps({
+            "type": "AGENT_LOG",
+            "timestamp": datetime.utcnow().strftime('%H:%M:%S'),
+            "node": "Human Override",
+            "level": "warning",
+            "message": f"[Human Override] Human operator bypassed agent decision. Executing: {payload.decision}"
+        }))
+        
+        # Send SMS alerts reflecting the change
+        from ..services.twilio_service import TwilioSMSClient
+        twilio_sid = os.getenv("TWILIO_ACCOUNT_SID", "mock_sid")
+        twilio_token = os.getenv("TWILIO_AUTH_TOKEN", "mock_token")
+        twilio_from = os.getenv("TWILIO_PHONE_NUMBER", "+1234567890")
+        twilio_client = TwilioSMSClient(account_sid=twilio_sid, auth_token=twilio_token, from_number=twilio_from)
+        
+        m_phone = os.getenv("MAINTENANCE_PHONE", "+1234567891")
+        o_phone = os.getenv("OPERATIONS_PHONE", "+1234567892")
+        s_phone = os.getenv("STATION_PHONE", "+1234567893")
+        
+        message_body = f"[RailMind Override] Human bypassed decision. New Plan: {payload.decision}"
+        
+        for dept_phone in [m_phone, o_phone, s_phone]:
+            try:
+                await twilio_client.send_incident_alert(dept_phone, message_body[:160])
+            except Exception as e:
+                print(f"Failed to send override SMS: {e}")
+                
+        # Fetch updated incident and broadcast to trigger client reload
+        incidents = await db_client.get_incidents(limit=50)
+        updated_inc = None
+        for inc in incidents:
+            if inc.get("incident_id") == id or str(inc.get("_id")) == id:
+                updated_inc = inc
+                break
+        if updated_inc:
+            await websocket_manager.broadcast(json.dumps({
+                "type": "INCIDENT_UPDATE",
+                "data": updated_inc
+            }))
+
+        return {"status": "approved", "modified_count": modified_count, "decision": payload.decision}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 # REST Endpoint: GET /api/system-status -> returns all system statuses
 @app.get("/api/system-status")
@@ -344,6 +411,16 @@ async def simulate_anomaly_endpoint(payload: SimulatedAnomaly):
                 if result:
                     result["loop_count"] = result.get("loop_count", 0) + 1
                     latest_agent_state.update(result)
+                    
+                    # Broadcast LOOP_UPDATE via WebSocket
+                    import json
+                    await websocket_manager.broadcast(json.dumps({
+                        "type": "LOOP_UPDATE",
+                        "loop_count": latest_agent_state["loop_count"],
+                        "last_run": datetime.utcnow().isoformat(),
+                        "trains_monitored": len(latest_agent_state.get("raw_train_data", [])),
+                        "anomalies_found": len(latest_agent_state.get("anomalies", []))
+                    }))
                 # Return back to IDLE state after execution
                 await asyncio.sleep(2.0)
                 import json
@@ -438,6 +515,16 @@ async def agent_command_endpoint(payload: AgentCommandPayload):
                     if result:
                         result["loop_count"] = result.get("loop_count", 0) + 1
                         latest_agent_state.update(result)
+                        
+                        # Broadcast LOOP_UPDATE via WebSocket
+                        import json
+                        await websocket_manager.broadcast(json.dumps({
+                            "type": "LOOP_UPDATE",
+                            "loop_count": latest_agent_state["loop_count"],
+                            "last_run": datetime.utcnow().isoformat(),
+                            "trains_monitored": len(latest_agent_state.get("raw_train_data", [])),
+                            "anomalies_found": len(latest_agent_state.get("anomalies", []))
+                        }))
                     await asyncio.sleep(2.0)
                     import json
                     await websocket_manager.broadcast(json.dumps({

@@ -169,6 +169,17 @@ def parse_rapidapi_train_for_agent(data: dict, train_number: str) -> dict:
         
     lat = coords["lat"]
     lng = coords["lng"]
+    
+    # Add time-seeded sinusoidal drift (approx. 5km) for live demo feel
+    import math, time
+    try:
+        t_num_int = int(t_num)
+    except:
+        t_num_int = 0
+    drift_lat = 0.04 * math.sin(time.time() / 180.0 + t_num_int * 1.5)
+    drift_lng = 0.04 * math.cos(time.time() / 180.0 + t_num_int * 1.5)
+    lat += drift_lat
+    lng += drift_lng
         
     return {
         "train_number": t_num,
@@ -497,6 +508,17 @@ def mock_train_data() -> list:
         coords = STATION_COORDS.get(code, {"lat": 20.5937, "lng": 78.9629, "name": "Unknown"})
         current_station = coords.get("name") if coords.get("name") != "Unknown" else t_data["current_station_name"].replace("~", "").strip()
         
+        # Add time-seeded sinusoidal drift (approx. 5km) for live demo feel
+        import math, time
+        try:
+            t_num_int = int(tn)
+        except:
+            t_num_int = 0
+        drift_lat = 0.04 * math.sin(time.time() / 180.0 + t_num_int * 1.5)
+        drift_lng = 0.04 * math.cos(time.time() / 180.0 + t_num_int * 1.5)
+        lat = coords["lat"] + drift_lat
+        lng = coords["lng"] + drift_lng
+
         res.append({
             "train_number": tn,
             "train_name": t_data["train_name"],
@@ -511,8 +533,8 @@ def mock_train_data() -> list:
             "platform": "1",
             "passenger_load": load,
             "current_station": current_station,
-            "lat": coords["lat"],
-            "lng": coords["lng"]
+            "lat": lat,
+            "lng": lng
         })
     return res
 
@@ -644,6 +666,19 @@ def parse_train_for_agent(data: dict, train_number: str) -> dict:
     
     station_code = current.get("StationCode", "NDLS")
     coords = STATION_COORDS.get(station_code, {"lat": 20.5937, "lng": 78.9629, "name": "Unknown"})
+    lat = coords["lat"]
+    lng = coords["lng"]
+
+    # Add time-seeded sinusoidal drift (approx. 5km) for live demo feel
+    import math, time
+    try:
+        t_num_int = int(train_number)
+    except:
+        t_num_int = 0
+    drift_lat = 0.04 * math.sin(time.time() / 180.0 + t_num_int * 1.5)
+    drift_lng = 0.04 * math.cos(time.time() / 180.0 + t_num_int * 1.5)
+    lat += drift_lat
+    lng += drift_lng
     
     return {
         "train_number": train_number,
@@ -657,8 +692,8 @@ def parse_train_for_agent(data: dict, train_number: str) -> dict:
         "actual_arrival": current.get("ActualArrival", "-"),
         "source": route[0]["StationName"] if route else "Unknown",
         "destination": route[-1]["StationName"] if route else "Unknown",
-        "lat": coords["lat"],
-        "lng": coords["lng"]
+        "lat": lat,
+        "lng": lng
     }
 
 class RailwaysAPIClient:
