@@ -1,10 +1,11 @@
 /* eslint-disable */
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import Sidebar from './components/Sidebar';
 import TopBar from './components/TopBar';
 import LiveMap from './components/LiveMap';
 import IncidentFeed from './components/IncidentFeed';
 import TaskBoard from './components/TaskBoard';
+import RouteIntelligence from './components/RouteIntelligence';
 import { ShieldAlert, AlertTriangle, Info, Check, CornerDownRight, Terminal, RefreshCw, X, Shield, User, HelpCircle, Activity, Bell, Settings } from 'lucide-react';
 
 class ErrorBoundary extends React.Component {
@@ -26,32 +27,32 @@ class ErrorBoundary extends React.Component {
       return (
         <div style={{
           padding: '40px',
-          backgroundColor: '#0b0d10',
-          color: '#ef4444',
+          backgroundColor: '#080a0d',
+          color: '#ff3366',
           height: '100vh',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
-          fontFamily: 'system-ui, sans-serif',
+          fontFamily: "'JetBrains Mono', monospace",
           gap: '16px'
         }}>
-          <h2 style={{ fontWeight: 600 }}>RailMind Dashboard encountered an error</h2>
-          <p style={{ color: '#94a3b8', fontSize: '14px' }}>Please reload or contact support if the issue persists.</p>
+          <h2 style={{ fontWeight: 600 }}>[ SYSTEM ERROR // RAILMIND CRASH ]</h2>
+          <p style={{ color: '#8a9ba8', fontSize: '13px' }}>RailMind Dashboard encountered an unrecoverable rendering error.</p>
           <button 
             onClick={() => window.location.reload()}
             style={{
               padding: '10px 20px',
-              backgroundColor: '#3b82f6',
-              color: '#fff',
+              backgroundColor: '#00f0ff',
+              color: '#080a0d',
               border: 'none',
-              borderRadius: '6px',
-              fontWeight: 600,
+              borderRadius: '0px',
+              fontWeight: 700,
               cursor: 'pointer',
               transition: 'background-color 0.2s'
             }}
           >
-            Reload Dashboard
+            REBOOT SYSTEM
           </button>
         </div>
       );
@@ -80,13 +81,40 @@ function MainApp() {
   const [tasks, setTasks] = useState([]);
   const [trains, setTrains] = useState([]);
   const [wsStatus, setWsStatus] = useState('reconnecting');
-  const [logs, setLogs] = useState(() => readStoredState('railmind_logs', []));
-  const [isHeroRunning, setIsHeroRunning] = useState(() => readStoredState('railmind_hero_running', false));
-  
+  const [logs, setLogs] = useState([]);
+  const [agentState, setAgentState] = useState('IDLE');
+  const [commandText, setCommandText] = useState('');
+  const [commandResult, setCommandResult] = useState('');
+  const [smsLogs, setSmsLogs] = useState([]);  
   // Modal Overlay States
   const [showSettings, setShowSettings] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
+
+  const recentIncidentElements = useMemo(() => {
+    const result = [];
+    const len = Math.min(incidents.length, 5);
+    for (let i = 0; i < len; i++) {
+      const inc = incidents[i];
+      result.push(
+        <div key={inc.id} className="palantir-mono" style={{
+          backgroundColor: '#121820',
+          border: '1px solid #1a2433',
+          padding: '10px 14px',
+          borderRadius: '0px',
+          fontSize: '11px',
+          color: '#cbd5e1'
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+            <span style={{ color: '#ff3366', fontWeight: 700 }}>{inc.severity.toUpperCase()}</span>
+            <span style={{ color: '#5c7080' }}>{inc.timestamp}</span>
+          </div>
+          {inc.title}
+        </div>
+      );
+    }
+    return result;
+  }, [incidents]);
 
   const socketRef = useRef(null);
   const API_BASE = `http://${window.location.hostname}:8000`;
@@ -114,7 +142,9 @@ function MainApp() {
           resolution_status: inc.resolution_status || 'pending',
           approved: inc.resolution_status === 'approved',
           departments: inc.departments_notified || [],
-          train_number: inc.train_number || 'Unknown'
+          train_number: inc.train_number || 'Unknown',
+          confidence_score: inc.confidence_score || null,
+          reasoning_steps: inc.reasoning_steps || []
         }));
         setIncidents(formatted);
         setIncidentCount(formatted.length);
@@ -222,10 +252,8 @@ function MainApp() {
               approved: report.resolution_status === 'approved',
               departments: report.departments_notified || [],
               train_number: report.train_number || 'Unknown',
-              confidence_score: report.confidence_score,
-              passenger_impact: report.passenger_impact,
-              recovery_eta: report.recovery_eta
-            };
+              confidence_score: report.confidence_score || null,
+              reasoning_steps: report.reasoning_steps || []            };
 
             setIncidents(prev => {
               if (prev.some(inc => inc.id === newIncident.id)) return prev;
@@ -238,10 +266,24 @@ function MainApp() {
             // Clear hero lock if an incident report finally drops
             setIsHeroRunning(false);
 
+             if (report.passenger_sms) {
+              setSmsLogs(prev => {
+                const newLog = {
+                  to: "+919651058174 (Passenger)",
+                  body: report.passenger_sms,
+                  sid: `SMdemo_${Math.random().toString(36).substr(2, 9)}`
+                };
+                if (prev.some(l => l.body === newLog.body)) return prev;
+                return [newLog, ...prev];
+              });
+            }
+
             fetchTasks();
             fetchTrains();
           } else if (payload.type === 'AGENT_LOG') {
             setLogs(prev => [...prev, payload].slice(-200)); // Keep last 200 logs
+          } else if (payload.type === 'AGENT_STATE_CHANGE') {
+            setAgentState(payload.state);
           }
         } catch (err) {
           console.error("[WEBSOCKET] Error parsing socket data:", err);
@@ -270,9 +312,16 @@ function MainApp() {
 
   const handleApprove = async (incidentId) => {
     console.log(`Approving reroute plan for incident: ${incidentId}`);
+    const adminPassword = window.prompt("Enter Admin Password to approve this reroute plan:");
+    if (adminPassword === null) {
+      return; // User cancelled
+    }
     try {
+      const headers = new Headers();
+      headers.set('Authorization', 'Basic ' + btoa('admin:' + adminPassword));
       const res = await fetch(`${API_BASE}/api/incidents/${incidentId}/approve`, {
-        method: 'POST'
+        method: 'POST',
+        headers: headers
       });
       if (res.ok) {
         setIncidents(prev => prev.map(inc => {
@@ -281,6 +330,9 @@ function MainApp() {
           }
           return inc;
         }));
+      } else if (res.status === 401) {
+        alert("Incorrect admin password.");
+        console.error("Unauthorized: Incorrect admin password.");
       } else {
         console.error("Failed to approve incident reroute plan on backend");
       }
@@ -414,23 +466,24 @@ function MainApp() {
       <div style={{ padding: '24px', flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '20px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
-            <h2 style={{ fontSize: '20px', fontWeight: 600, color: '#f8fafc' }}>Active Incident Center</h2>
-            <p style={{ fontSize: '13px', color: '#64748b' }}>Operations command center feeds</p>
+            <h2 className="palantir-mono" style={{ fontSize: '18px', fontWeight: 600, color: '#f8fafc' }}>ANOMALY COMMAND CENTER</h2>
+            <p className="palantir-mono" style={{ fontSize: '11px', color: '#5c7080' }}>OPERATIONAL ALERTS AUDIT FEED</p>
           </div>
           {/* Filters */}
-          <div style={{ display: 'flex', gap: '8px', backgroundColor: '#11141a', padding: '4px', borderRadius: '6px', border: '1px solid #1a1e26' }}>
+          <div style={{ display: 'flex', gap: '8px', backgroundColor: '#0d1117', padding: '4px', borderRadius: '0px', border: '1px solid #1a2433' }}>
             {['ALL', 'CRITICAL', 'WARNING', 'INFO'].map(f => (
               <button
                 key={f}
                 onClick={() => setFilter(f)}
+                className="palantir-mono"
                 style={{
                   padding: '6px 12px',
-                  backgroundColor: filter === f ? '#3b82f6' : 'transparent',
-                  color: filter === f ? '#fff' : '#94a3b8',
+                  backgroundColor: filter === f ? '#00f0ff' : 'transparent',
+                  color: filter === f ? '#080a0d' : '#8a9ba8',
                   border: 'none',
-                  borderRadius: '4px',
-                  fontSize: '11px',
-                  fontWeight: 600,
+                  borderRadius: '0px',
+                  fontSize: '10px',
+                  fontWeight: 700,
                   cursor: 'pointer',
                   transition: 'all 0.2s'
                 }}
@@ -443,76 +496,76 @@ function MainApp() {
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '16px' }}>
           {filteredIncidents.length === 0 ? (
-            <div style={{ gridColumn: '1 / -1', padding: '40px', textAlign: 'center', color: '#64748b', backgroundColor: '#11141a', borderRadius: '8px', border: '1px dashed #1a1e26' }}>
-              No active incidents matching selection.
+            <div className="palantir-mono" style={{ gridColumn: '1 / -1', padding: '40px', textAlign: 'center', color: '#5c7080', backgroundColor: '#0d1117', border: '1px dashed #1a2433' }}>
+              [ NO ANOMALIES RECORDED FOR STATUS: {filter} ]
             </div>
           ) : (
             filteredIncidents.map(inc => {
               const isCritical = inc.severity === 'critical';
               const isWarning = inc.severity === 'warning';
-              const borderColor = isCritical ? '#ef4444' : isWarning ? '#f59e0b' : '#3b82f6';
+              const borderColor = isCritical ? '#ff3366' : isWarning ? '#ffb300' : '#00f0ff';
 
               return (
                 <div key={inc.id} style={{
-                  backgroundColor: '#161920',
-                  border: '1px solid #1a1e26',
+                  backgroundColor: '#121820',
+                  border: '1px solid #1a2433',
                   borderLeft: `4px solid ${borderColor}`,
-                  borderRadius: '6px',
+                  borderRadius: '0px',
                   padding: '20px',
                   display: 'flex',
                   flexDirection: 'column',
-                  gap: '12px',
-                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.2)'
+                  gap: '12px'
                 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{
+                    <span className="palantir-mono" style={{
                       fontSize: '9px',
                       fontWeight: 700,
                       color: borderColor,
-                      backgroundColor: `${borderColor}15`,
+                      backgroundColor: `${borderColor}0c`,
                       padding: '3px 8px',
-                      borderRadius: '3px',
+                      border: `1px solid ${borderColor}`,
                       textTransform: 'uppercase'
                     }}>{inc.severity}</span>
-                    <span style={{ fontSize: '11px', color: '#64748b' }}>{inc.timestamp}</span>
+                    <span className="palantir-mono" style={{ fontSize: '11px', color: '#5c7080' }}>{inc.timestamp}</span>
                   </div>
 
                   <div>
-                    <h3 style={{ fontSize: '15px', fontWeight: 600, color: '#fff' }}>{inc.title}</h3>
-                    <p style={{ fontSize: '12px', color: '#cbd5e1', marginTop: '4px' }}>Train: {inc.train_number}</p>
+                    <h3 className="palantir-mono" style={{ fontSize: '14px', fontWeight: 600, color: '#fff' }}>{inc.title}</h3>
+                    <p className="palantir-mono" style={{ fontSize: '11px', color: '#8a9ba8', marginTop: '4px' }}>TRAIN: {inc.train_number}</p>
                   </div>
 
                   {inc.reroute_plan && (
                     <div style={{
-                      backgroundColor: 'rgba(59, 130, 246, 0.05)',
-                      border: '1px dashed rgba(59, 130, 246, 0.2)',
-                      padding: '10px',
-                      borderRadius: '4px',
+                      backgroundColor: 'rgba(0, 240, 255, 0.02)',
+                      border: '1px dashed #1a2433',
+                      padding: '12px',
+                      borderRadius: '0px',
                       display: 'flex',
                       flexDirection: 'column',
                       gap: '8px'
                     }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '10px', color: '#94a3b8', fontWeight: 600 }}>
-                        <CornerDownRight size={12} style={{ color: '#3b82f6' }} />
-                        REROUTE PLAN
+                      <div className="palantir-mono" style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '9px', color: '#5c7080', fontWeight: 700 }}>
+                        <CornerDownRight size={12} style={{ color: '#00f0ff' }} />
+                        REROUTE PLAN COMMAND
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px' }}>
-                        <span style={{ fontSize: '11px', color: '#cbd5e1' }}>{inc.reroute_plan}</span>
+                        <span className="palantir-mono" style={{ fontSize: '11px', color: '#cbd5e1' }}>{inc.reroute_plan}</span>
                         {inc.approved ? (
-                          <span style={{ color: '#10b981', fontSize: '11px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '2px' }}>
-                            <Check size={12} /> APPROVED ✓
+                          <span className="palantir-mono" style={{ color: '#00e676', fontSize: '10px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '2px' }}>
+                            <Check size={12} /> APPROVED
                           </span>
                         ) : (
                           <button
                             onClick={() => handleApprove(inc.id)}
+                            className="palantir-mono"
                             style={{
-                              backgroundColor: '#3b82f6',
-                              color: '#fff',
+                              backgroundColor: '#00f0ff',
+                              color: '#080a0d',
                               border: 'none',
-                              borderRadius: '4px',
+                              borderRadius: '0px',
                               padding: '4px 10px',
                               fontSize: '10px',
-                              fontWeight: 600,
+                              fontWeight: 700,
                               cursor: 'pointer'
                             }}
                           >
@@ -523,38 +576,38 @@ function MainApp() {
                     </div>
                   )}
 
-                  <div style={{ borderTop: '1px solid #1a1e26', paddingTop: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontSize: '11px', color: '#64748b' }}>
-                      Notified: {inc.departments.join(', ') || 'None'}
+                  <div style={{ borderTop: '1px solid #1a2433', paddingTop: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span className="palantir-mono" style={{ fontSize: '10px', color: '#5c7080' }}>
+                      DISPATCH: {inc.departments.join(' // ') || 'NONE'}
                     </span>
                     <button
                       onClick={() => setExpandedIncident(expandedIncident === inc.id ? null : inc.id)}
+                      className="palantir-mono"
                       style={{
                         backgroundColor: 'transparent',
                         border: 'none',
-                        color: '#3b82f6',
+                        color: '#00f0ff',
                         fontSize: '11px',
                         cursor: 'pointer',
                         fontWeight: 600
                       }}
                     >
-                      {expandedIncident === inc.id ? 'Hide reasoning ▲' : 'Show reasoning ▼'}
+                      {expandedIncident === inc.id ? 'HIDE DETAILS' : 'VIEW DETAILS'}
                     </button>
                   </div>
 
                   {expandedIncident === inc.id && (
-                    <div style={{
-                      backgroundColor: '#0a0c10',
-                      border: '1px solid #1a1e26',
+                    <div className="palantir-mono" style={{
+                      backgroundColor: '#080a0d',
+                      border: '1px solid #1a2433',
                       padding: '12px',
-                      borderRadius: '4px',
+                      borderRadius: '0px',
                       fontSize: '11px',
-                      color: '#94a3b8',
-                      fontFamily: 'monospace',
+                      color: '#8a9ba8',
                       whiteSpace: 'pre-wrap',
                       marginTop: '4px'
                     }}>
-                      {inc.title}
+                      {inc.description}
                     </div>
                   )}
                 </div>
@@ -573,33 +626,43 @@ function MainApp() {
     const totalCount = incidents.length;
 
     const maxCount = Math.max(criticalCount, warningCount, infoCount, 1);
+    
+    // Compute average AI confidence score from actual incidents
+    const incidentsWithScore = incidents.filter(i => i.confidence_score);
+    const avgConfidence = incidentsWithScore.length > 0
+      ? (incidentsWithScore.reduce((s, i) => s + i.confidence_score, 0) / incidentsWithScore.length).toFixed(1)
+      : '—';
+    
+    // MTTR: approximate based on agent loop count and incident count (heuristic for demo)
+    const mttr = totalCount > 0 ? (loopCount > 0 ? (loopCount * 30 / totalCount / 60).toFixed(1) : '4.2') : '0';
 
     return (
       <div style={{ padding: '24px', flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '24px' }}>
         <div>
-          <h2 style={{ fontSize: '20px', fontWeight: 600, color: '#f8fafc' }}>System Operations Analytics</h2>
-          <p style={{ fontSize: '13px', color: '#64748b' }}>Historical metrics & loops telemetry</p>
+          <h2 className="palantir-mono" style={{ fontSize: '18px', fontWeight: 600, color: '#f8fafc' }}>OPERATIONS ANALYTICS</h2>
+          <p className="palantir-mono" style={{ fontSize: '11px', color: '#5c7080' }}>HISTORICAL ANOMALY & AGENT CYCLES TIMELINE</p>
         </div>
 
         {/* Stats Grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
           {[
-            { label: 'TOTAL INCIDENTS', val: totalCount, color: '#3b82f6' },
-            { label: 'CRITICAL ALERTS', val: criticalCount, color: '#ef4444' },
-            { label: 'AGENT LOOP COUNT', val: loopCount, color: '#10b981' },
-            { label: 'AVG RESPONSE TIME', val: '4.2 min', color: '#a5b4fc' }
+            { label: 'TOTAL INCIDENTS', val: totalCount, color: '#00f0ff' },
+            { label: 'CRITICAL ALERTS', val: criticalCount, color: '#ff3366' },
+            { label: 'AGENT COGNITIVE LOOPS', val: loopCount, color: '#00e676' },
+            { label: 'MTTR (MINUTES)', val: `${mttr} min`, color: '#cbd5e1' },
+            { label: 'AVG AI CONFIDENCE', val: avgConfidence !== '—' ? `${avgConfidence}%` : avgConfidence, color: '#ffb300' }
           ].map((stat, idx) => (
             <div key={idx} style={{
-              backgroundColor: '#11141a',
-              border: '1px solid #1a1e26',
-              borderRadius: '6px',
+              backgroundColor: '#0d1117',
+              border: '1px solid #1a2433',
+              borderRadius: '0px',
               padding: '20px',
               display: 'flex',
               flexDirection: 'column',
               gap: '8px'
             }}>
-              <span style={{ fontSize: '10px', fontWeight: 600, color: '#64748b', letterSpacing: '0.5px' }}>{stat.label}</span>
-              <span style={{ fontSize: '28px', fontWeight: 700, color: stat.color }}>{stat.val}</span>
+              <span className="palantir-mono" style={{ fontSize: '9px', fontWeight: 600, color: '#5c7080', letterSpacing: '0.5px' }}>{stat.label}</span>
+              <span className="palantir-mono" style={{ fontSize: '28px', fontWeight: 700, color: stat.color }}>{stat.val}</span>
             </div>
           ))}
         </div>
@@ -610,33 +673,33 @@ function MainApp() {
           <div style={{
             flex: 1,
             minWidth: '340px',
-            backgroundColor: '#11141a',
-            border: '1px solid #1a1e26',
-            borderRadius: '6px',
+            backgroundColor: '#0d1117',
+            border: '1px solid #1a2433',
+            borderRadius: '0px',
             padding: '24px',
             display: 'flex',
             flexDirection: 'column',
             gap: '16px'
           }}>
-            <h3 style={{ fontSize: '13px', fontWeight: 600, color: '#f8fafc' }}>INCIDENTS BY SEVERITY</h3>
+            <h3 className="palantir-mono" style={{ fontSize: '12px', fontWeight: 600, color: '#f8fafc', letterSpacing: '0.5px' }}>INCIDENTS BY SEVERITY</h3>
             <div style={{ display: 'flex', justifyContent: 'space-around', alignItems: 'flex-end', height: '180px', paddingTop: '20px' }}>
               {[
-                { name: 'Critical', count: criticalCount, color: '#ef4444' },
-                { name: 'Warning', count: warningCount, color: '#f59e0b' },
-                { name: 'Info', count: infoCount, color: '#3b82f6' }
+                { name: 'Critical', count: criticalCount, color: '#ff3366' },
+                { name: 'Warning', count: warningCount, color: '#ffb300' },
+                { name: 'Info', count: infoCount, color: '#00f0ff' }
               ].map((bar, idx) => {
                 const heightPercent = (bar.count / maxCount) * 140; // max height 140px
                 return (
                   <div key={idx} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', width: '60px' }}>
-                    <span style={{ fontSize: '12px', fontWeight: 600, color: '#fff' }}>{bar.count}</span>
+                    <span className="palantir-mono" style={{ fontSize: '12px', fontWeight: 600, color: '#fff' }}>{bar.count}</span>
                     <div style={{
                       width: '32px',
                       height: `${Math.max(heightPercent, 6)}px`,
                       backgroundColor: bar.color,
-                      borderRadius: '4px 4px 0 0',
+                      borderRadius: '0px',
                       transition: 'height 0.5s ease-out'
                     }}></div>
-                    <span style={{ fontSize: '11px', color: '#64748b' }}>{bar.name}</span>
+                    <span className="palantir-mono" style={{ fontSize: '10px', color: '#5c7080' }}>{bar.name}</span>
                   </div>
                 );
               })}
@@ -646,31 +709,31 @@ function MainApp() {
           <div style={{
             flex: 1,
             minWidth: '340px',
-            backgroundColor: '#11141a',
-            border: '1px solid #1a1e26',
-            borderRadius: '6px',
+            backgroundColor: '#0d1117',
+            border: '1px solid #1a2433',
+            borderRadius: '0px',
             padding: '24px',
             display: 'flex',
             flexDirection: 'column',
             gap: '12px'
           }}>
-            <h3 style={{ fontSize: '13px', fontWeight: 600, color: '#f8fafc' }}>SYSTEM STATUS REPORT</h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '12px', color: '#cbd5e1', marginTop: '10px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #1a1e26', paddingBottom: '6px' }}>
+            <h3 className="palantir-mono" style={{ fontSize: '12px', fontWeight: 600, color: '#f8fafc', letterSpacing: '0.5px' }}>CORE SYSTEM STATUS REPORT</h3>
+            <div className="palantir-mono" style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '11px', color: '#cbd5e1', marginTop: '10px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #1a2433', paddingBottom: '6px' }}>
                 <span>Operations Agent State</span>
-                <span style={{ color: '#10b981', fontWeight: 600 }}>NOMINAL</span>
+                <span style={{ color: '#00e676', fontWeight: 600 }}>[ ACTIVE // NOMINAL ]</span>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #1a1e26', paddingBottom: '6px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #1a2433', paddingBottom: '6px' }}>
                 <span>Primary API Client</span>
-                <span style={{ color: '#ef4444' }}>API FALLBACK ACTIVE</span>
+                <span style={{ color: '#ff3366' }}>[ API FALLBACK ACTIVE ]</span>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #1a1e26', paddingBottom: '6px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #1a2433', paddingBottom: '6px' }}>
                 <span>Database Client</span>
-                <span style={{ color: '#ef4444' }}>JSON FALLBACK ACTIVE</span>
+                <span style={{ color: '#ff3366' }}>[ JSON FALLBACK ACTIVE ]</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '6px' }}>
                 <span>SMS Alert Dispatcher</span>
-                <span style={{ color: '#3b82f6' }}>MOCK MODE active</span>
+                <span style={{ color: '#00f0ff' }}>[ MOCK MODE ACTIVE ]</span>
               </div>
             </div>
           </div>
@@ -683,26 +746,26 @@ function MainApp() {
     return (
       <div style={{ padding: '40px', flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '20px', color: '#e2e8f0', textAlign: 'center' }}>
         <div style={{
-          backgroundColor: '#11141a',
-          border: '1px solid #1a1e26',
-          borderRadius: '8px',
+          backgroundColor: '#0d1117',
+          border: '1px solid #00f0ff',
+          boxShadow: '0 0 15px rgba(0, 240, 255, 0.15)',
+          borderRadius: '0px',
           padding: '40px 60px',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
           gap: '16px',
-          maxWidth: '560px',
-          boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.3)'
+          maxWidth: '560px'
         }}>
-          <ShieldAlert size={48} style={{ color: '#3b82f6' }} />
-          <h2 style={{ fontSize: '22px', fontWeight: 700, color: '#f8fafc' }}>RailMind Support Portal</h2>
-          <p style={{ fontSize: '13px', color: '#94a3b8', lineHeight: '1.6' }}>
-            RailMind v1.0 — Autonomous Railway Operations Agent.<br />
-            Built for FAR AWAY 2026.
+          <ShieldAlert size={48} style={{ color: '#00f0ff' }} />
+          <h2 className="palantir-mono" style={{ fontSize: '18px', fontWeight: 700, color: '#f8fafc', letterSpacing: '1px' }}>RAILMIND TERMINAL PORTAL</h2>
+          <p className="palantir-mono" style={{ fontSize: '12px', color: '#8a9ba8', lineHeight: '1.6' }}>
+            RailMind SECURE v1.0 — Multi-Agent Railway Cognitive Engine.<br />
+            Secure operations console interface.
           </p>
-          <div style={{ width: '100%', height: '1px', backgroundColor: '#1a1e26', margin: '10px 0' }}></div>
-          <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 500, letterSpacing: '0.5px' }}>
-            AUTHORIZED OPERATIONS PERSONNEL ONLY • SECURE SESSION SEC-402
+          <div style={{ width: '100%', height: '1px', backgroundColor: '#1a2433', margin: '10px 0' }}></div>
+          <span className="palantir-mono" style={{ fontSize: '10px', color: '#ff3366', fontWeight: 600, letterSpacing: '0.5px' }}>
+            [ AUTHORIZED MILITARY / COGNITIVE AGENTS ONLY • SEC-SESSION 402 ]
           </span>
         </div>
       </div>
@@ -722,57 +785,66 @@ function MainApp() {
       <div style={{ padding: '24px', flex: 1, display: 'flex', flexDirection: 'column', gap: '16px', height: '100%' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
-            <h2 style={{ fontSize: '20px', fontWeight: 600, color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Terminal size={20} style={{ color: '#10b981' }} />
-              Agent Live Operations Logs
+            <h2 className="palantir-mono" style={{ fontSize: '18px', fontWeight: 600, color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Terminal size={20} style={{ color: '#00f0ff' }} />
+              COGNITIVE OPERATIONS STREAM
             </h2>
-            <p style={{ fontSize: '13px', color: '#64748b' }}>Real-time streaming agent steps and diagnostics</p>
+            <p className="palantir-mono" style={{ fontSize: '11px', color: '#5c7080' }}>REAL-TIME AGENT STATE MACHINE TRACE</p>
           </div>
           <button
             onClick={onClear}
+            className="palantir-mono"
             style={{
               padding: '6px 12px',
               backgroundColor: 'transparent',
-              border: '1px solid #334155',
-              borderRadius: '4px',
-              color: '#94a3b8',
-              fontSize: '11px',
-              fontWeight: 600,
+              border: '1px solid #1a2433',
+              borderRadius: '0px',
+              color: '#8a9ba8',
+              fontSize: '10px',
+              fontWeight: 700,
               cursor: 'pointer',
               transition: 'all 0.2s'
             }}
-            onMouseEnter={e => e.currentTarget.style.backgroundColor = '#1e293b'}
-            onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
+            onMouseEnter={e => {
+              e.currentTarget.style.backgroundColor = '#17202b';
+              e.currentTarget.style.borderColor = '#00f0ff';
+              e.currentTarget.style.color = '#e2e8f0';
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.backgroundColor = 'transparent';
+              e.currentTarget.style.borderColor = '#1a2433';
+              e.currentTarget.style.color = '#8a9ba8';
+            }}
           >
-            Clear logs
+            CLEAR LOGSTREAM
           </button>
         </div>
 
         <div style={{
           flex: 1,
           backgroundColor: '#05070a',
-          border: '1px solid #1a1e26',
-          borderRadius: '6px',
+          border: '1px solid #1a2433',
+          borderRadius: '0px',
           padding: '20px',
           overflowY: 'auto',
           display: 'flex',
           flexDirection: 'column',
           gap: '8px',
-          fontFamily: 'monospace',
-          fontSize: '12px',
-          color: '#34d399',
-          boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.6)'
+          fontFamily: "'JetBrains Mono', monospace",
+          fontSize: '11px',
+          color: '#00f0ff',
+          boxShadow: 'inset 0 2px 10px rgba(0,0,0,0.8)'
         }}>
           {logs.length === 0 ? (
-            <div style={{ color: '#64748b', fontStyle: 'italic' }}>
+            <div className="palantir-mono" style={{ color: '#5c7080', fontStyle: 'italic' }}>
               [SYSTEM] Awaiting live logs from operations agent stream...
             </div>
           ) : (
             logs.map((log, idx) => (
               <div key={idx} style={{ lineBreak: 'anywhere' }}>
-                <span style={{ color: '#60a5fa' }}>{log.message.substring(0, 21)}</span>
-                <span style={{ color: '#c084fc' }}>{log.message.substring(21, 35)}</span>
-                <span>{log.message.substring(35)}</span>
+                <span style={{ color: '#ffb300' }}>{log.message.substring(0, 21)}</span>
+                <span style={{ color: '#00f0ff' }}>{log.message.substring(21, 35)}</span>
+                <span style={{ color: '#e2e8f0' }}>{log.message.substring(35)}</span>
               </div>
             ))
           )}
@@ -807,39 +879,39 @@ function MainApp() {
     }, []);
 
     if (loading && !telemetry) {
-      return <div style={{ padding: '24px', color: '#94a3b8' }}>Loading telemetry...</div>;
+      return <div className="palantir-mono" style={{ padding: '24px', color: '#8a9ba8', fontSize: '12px' }}>[ RETRIEVING TELEMETRY DATA... ]</div>;
     }
 
     const metrics = [
-      { name: 'Agent Loop Status', value: telemetry?.agent_loop_status?.toUpperCase() || 'RUNNING', color: '#10b981' },
-      { name: 'Last API Call', value: telemetry?.last_api_call || 'Never', color: '#a5b4fc' },
-      { name: 'Railways API Latency', value: `${telemetry?.railways_latency_ms || 0} ms`, color: '#3b82f6' },
-      { name: 'AI Reasoner Latency', value: `${telemetry?.ai_latency_ms || 0} ms`, color: '#c084fc' },
-      { name: 'WebSocket Clients', value: telemetry?.websocket_clients || 0, color: '#f59e0b' },
-      { name: 'MongoDB Incident Count', value: telemetry?.mongodb_incidents || 0, color: '#ef4444' },
-      { name: 'MongoDB Task Count', value: telemetry?.mongodb_tasks || 0, color: '#ec4899' },
+      { name: 'Agent Loop Status', value: telemetry?.agent_loop_status?.toUpperCase() || 'RUNNING', color: '#00e676' },
+      { name: 'Last API Call Check', value: telemetry?.last_api_call || 'Never', color: '#cbd5e1' },
+      { name: 'Indian Railways Latency', value: `${telemetry?.railways_latency_ms || 0} ms`, color: '#00f0ff' },
+      { name: 'AI Cognitive Latency', value: `${telemetry?.ai_latency_ms || 0} ms`, color: '#00f0ff' },
+      { name: 'Live WS Connections', value: telemetry?.websocket_clients || 0, color: '#ffb300' },
+      { name: 'MongoDB Incident Collections', value: telemetry?.mongodb_incidents || 0, color: '#ff3366' },
+      { name: 'MongoDB Task Collections', value: telemetry?.mongodb_tasks || 0, color: '#ff3366' },
     ];
 
     return (
       <div style={{ padding: '24px', flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '20px' }}>
         <div>
-          <h2 style={{ fontSize: '20px', fontWeight: 600, color: '#f8fafc' }}>System Telemetry</h2>
-          <p style={{ fontSize: '13px', color: '#64748b' }}>Real-time operations timing and statistics</p>
+          <h2 className="palantir-mono" style={{ fontSize: '18px', fontWeight: 600, color: '#f8fafc' }}>SYSTEM METRICS TELEMETRY</h2>
+          <p className="palantir-mono" style={{ fontSize: '11px', color: '#5c7080' }}>REAL-TIME HARDWARE & MULTI-AGENT STATE DATA</p>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '16px' }}>
           {metrics.map((m, idx) => (
             <div key={idx} style={{
-              backgroundColor: '#11141a',
-              border: '1px solid #1a1e26',
-              borderRadius: '8px',
+              backgroundColor: '#0d1117',
+              border: '1px solid #1a2433',
+              borderRadius: '0px',
               padding: '20px',
               display: 'flex',
               flexDirection: 'column',
               gap: '8px'
             }}>
-              <span style={{ fontSize: '12px', fontWeight: 500, color: '#94a3b8' }}>{m.name}</span>
-              <span style={{ fontSize: '24px', fontWeight: 700, color: m.color, textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }} title={m.value}>{m.value}</span>
+              <span className="palantir-mono" style={{ fontSize: '10px', fontWeight: 600, color: '#5c7080' }}>{m.name}</span>
+              <span className="palantir-mono" style={{ fontSize: '20px', fontWeight: 700, color: m.color, textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }} title={m.value}>{m.value}</span>
             </div>
           ))}
         </div>
@@ -872,53 +944,53 @@ function MainApp() {
     }, []);
 
     if (loading && scheduleTrains.length === 0) {
-      return <div style={{ padding: '24px', color: '#94a3b8' }}>Loading schedules...</div>;
+      return <div className="palantir-mono" style={{ padding: '24px', color: '#8a9ba8', fontSize: '12px' }}>[ RETRIEVING LIVE TIMETABLES... ]</div>;
     }
 
     return (
       <div style={{ padding: '24px', flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '20px' }}>
         <div>
-          <h2 style={{ fontSize: '20px', fontWeight: 600, color: '#f8fafc' }}>Active Train Schedules</h2>
-          <p style={{ fontSize: '13px', color: '#64748b' }}>Monitored express and passenger corridors (Auto-refresh every 30s)</p>
+          <h2 className="palantir-mono" style={{ fontSize: '18px', fontWeight: 600, color: '#f8fafc' }}>NETWORK TRACK SCHEDULES</h2>
+          <p className="palantir-mono" style={{ fontSize: '11px', color: '#5c7080' }}>AUTO-REFRESH INTERVAL [30S]</p>
         </div>
 
         <div style={{
-          backgroundColor: '#11141a',
-          border: '1px solid #1a1e26',
-          borderRadius: '8px',
+          backgroundColor: '#0d1117',
+          border: '1px solid #1a2433',
+          borderRadius: '0px',
           overflow: 'hidden'
         }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '14px' }}>
+          <table className="palantir-mono" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '12px' }}>
             <thead>
-              <tr style={{ backgroundColor: '#161920', borderBottom: '1px solid #1a1e26', color: '#94a3b8' }}>
-                <th style={{ padding: '14px 16px', fontWeight: 600 }}>Train No</th>
-                <th style={{ padding: '14px 16px', fontWeight: 600 }}>Train Name</th>
-                <th style={{ padding: '14px 16px', fontWeight: 600 }}>Route</th>
-                <th style={{ padding: '14px 16px', fontWeight: 600 }}>Status</th>
-                <th style={{ padding: '14px 16px', fontWeight: 600 }}>Last Delay</th>
-                <th style={{ padding: '14px 16px', fontWeight: 600 }}>Current Station</th>
+              <tr style={{ backgroundColor: '#121820', borderBottom: '1px solid #1a2433', color: '#8a9ba8' }}>
+                <th style={{ padding: '14px 16px', fontWeight: 600 }}>TRAIN NO</th>
+                <th style={{ padding: '14px 16px', fontWeight: 600 }}>NAME</th>
+                <th style={{ padding: '14px 16px', fontWeight: 600 }}>CORRIDOR ROUTE</th>
+                <th style={{ padding: '14px 16px', fontWeight: 600 }}>STATUS</th>
+                <th style={{ padding: '14px 16px', fontWeight: 600 }}>DELAY OFFSET</th>
+                <th style={{ padding: '14px 16px', fontWeight: 600 }}>GPS POSITION</th>
               </tr>
             </thead>
             <tbody>
               {scheduleTrains.map((train, idx) => {
                 const isDelayed = train.delay_minutes > 0;
-                const statusColor = train.status === 'cancelled' ? '#ef4444' : isDelayed ? '#f59e0b' : '#10b981';
+                const statusColor = train.status === 'cancelled' ? '#ff3366' : isDelayed ? '#ffb300' : '#00e676';
                 return (
                   <tr key={idx} style={{
-                    borderBottom: '1px solid #161920',
+                    borderBottom: '1px solid #121820',
                     color: '#cbd5e1',
-                    backgroundColor: idx % 2 === 0 ? '#11141a' : '#14171f'
+                    backgroundColor: idx % 2 === 0 ? '#0d1117' : '#0f141b'
                   }}>
-                    <td style={{ padding: '12px 16px', fontWeight: 700, color: '#3b82f6' }}>{train.train_number}</td>
+                    <td style={{ padding: '12px 16px', fontWeight: 700, color: '#00f0ff' }}>{train.train_number}</td>
                     <td style={{ padding: '12px 16px' }}>{train.train_name}</td>
                     <td style={{ padding: '12px 16px' }}>{train.source || 'NDLS'} → {train.destination || 'RKMP'}</td>
                     <td style={{ padding: '12px 16px', fontWeight: 600, color: statusColor }}>
                       {train.status?.toUpperCase() || 'UNKNOWN'}
                     </td>
-                    <td style={{ padding: '12px 16px', color: isDelayed ? '#f59e0b' : '#64748b' }}>
-                      {isDelayed ? `${train.delay_minutes} mins` : 'None'}
+                    <td style={{ padding: '12px 16px', color: isDelayed ? '#ffb300' : '#5c7080' }}>
+                      {isDelayed ? `+${train.delay_minutes} min` : '--'}
                     </td>
-                    <td style={{ padding: '12px 16px', color: '#94a3b8' }}>{train.current_station || 'N/A'}</td>
+                    <td style={{ padding: '12px 16px', color: '#8a9ba8' }}>{train.current_station || 'GPS LOSS'}</td>
                   </tr>
                 );
               })}
@@ -952,48 +1024,47 @@ function MainApp() {
     }, []);
 
     if (loading && !status) {
-      return <div style={{ padding: '24px', color: '#94a3b8' }}>Loading system assets...</div>;
+      return <div className="palantir-mono" style={{ padding: '24px', color: '#8a9ba8', fontSize: '12px' }}>[ RESOLVING SYSTEM ASSETS CONNECTION MAP... ]</div>;
     }
 
     const services = [
-      { name: 'Agent Loop Status', status: status?.agent_status || 'ACTIVE', isConnected: true },
-      { name: 'Reasoning Model', status: status?.model || 'Gemini 2.0 Flash / Claude', isConnected: true },
-      { name: 'Indian Railways API Feed', status: status?.railways_api || 'Disconnected', isConnected: status?.railways_api === 'Connected' },
-      { name: 'Twilio SMS Alert System', status: status?.twilio_sms || 'Disconnected', isConnected: status?.twilio_sms === 'Connected' },
-      { name: 'MongoDB Cloud Database', status: status?.mongodb || 'Disconnected', isConnected: status?.mongodb === 'Connected' }
+      { name: 'Core Orchestrator Node', status: status?.agent_status || 'ACTIVE', isConnected: true },
+      { name: 'Cognitive Reasoning Model', status: status?.model || 'GEMINI 2.5 FLASH / CLAUDE', isConnected: true },
+      { name: 'Indian Railways Telemetry API', status: status?.railways_api || 'Disconnected', isConnected: status?.railways_api === 'Connected' },
+      { name: 'Twilio Warning Alert Gateway', status: status?.twilio_sms || 'Disconnected', isConnected: status?.twilio_sms === 'Connected' },
+      { name: 'MongoDB Cloud Collections', status: status?.mongodb || 'Disconnected', isConnected: status?.mongodb === 'Connected' }
     ];
 
     return (
       <div style={{ padding: '24px', flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '24px' }}>
         <div>
-          <h2 style={{ fontSize: '20px', fontWeight: 600, color: '#f8fafc' }}>RailMind System Assets</h2>
-          <p style={{ fontSize: '13px', color: '#64748b' }}>Operations connections status and departmental coordinates</p>
+          <h2 className="palantir-mono" style={{ fontSize: '18px', fontWeight: 600, color: '#f8fafc' }}>SYSTEM REGISTRY & ASSETS</h2>
+          <p className="palantir-mono" style={{ fontSize: '11px', color: '#5c7080' }}>NODE NETWORKS & ASSET DEPLOYMENTS STATUS</p>
         </div>
 
         {/* Connection Cards */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '16px' }}>
           {services.map((s, idx) => (
             <div key={idx} style={{
-              backgroundColor: '#11141a',
-              border: '1px solid #1a1e26',
-              borderRadius: '8px',
+              backgroundColor: '#0d1117',
+              border: '1px solid #1a2433',
+              borderRadius: '0px',
               padding: '20px',
               display: 'flex',
               flexDirection: 'column',
               gap: '12px'
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: '13px', fontWeight: 600, color: '#f8fafc' }}>{s.name}</span>
+                <span className="palantir-mono" style={{ fontSize: '12px', fontWeight: 600, color: '#f8fafc' }}>{s.name}</span>
                 <span style={{
-                  width: '8px',
-                  height: '8px',
-                  borderRadius: '50%',
-                  backgroundColor: s.isConnected ? '#10b981' : '#ef4444',
-                  boxShadow: s.isConnected ? '0 0 8px #10b981' : '0 0 8px #ef4444'
+                  width: '6px',
+                  height: '6px',
+                  backgroundColor: s.isConnected ? '#00e676' : '#ff3366',
+                  boxShadow: s.isConnected ? '0 0 6px #00e676' : '0 0 6px #ff3366'
                 }}></span>
               </div>
-              <span style={{ fontSize: '15px', color: s.isConnected ? '#10b981' : '#ef4444', fontWeight: 600 }}>
-                {s.status}
+              <span className="palantir-mono" style={{ fontSize: '13px', color: s.isConnected ? '#00e676' : '#ff3366', fontWeight: 700 }}>
+                [ {s.status.toUpperCase()} ]
               </span>
             </div>
           ))}
@@ -1001,27 +1072,27 @@ function MainApp() {
 
         {/* Contacts Section */}
         <div style={{
-          backgroundColor: '#11141a',
-          border: '1px solid #1a1e26',
-          borderRadius: '8px',
+          backgroundColor: '#0d1117',
+          border: '1px solid #1a2433',
+          borderRadius: '0px',
           padding: '20px',
           display: 'flex',
           flexDirection: 'column',
           gap: '16px'
         }}>
-          <h3 style={{ fontSize: '15px', fontWeight: 600, color: '#f8fafc' }}>Departmental Contacts Registry</h3>
+          <h3 className="palantir-mono" style={{ fontSize: '13px', fontWeight: 600, color: '#f8fafc' }}>NODE DISPATCH CONTACTS REGISTRY</h3>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '16px' }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-              <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>MAINTENANCE COMMAND</span>
-              <span style={{ fontSize: '14px', color: '#cbd5e1', fontWeight: 500 }}>{status?.contacts?.maintenance || 'N/A'}</span>
+              <span className="palantir-mono" style={{ fontSize: '10px', color: '#5c7080', fontWeight: 600 }}>MAINTENANCE COORDINATES</span>
+              <span className="palantir-mono" style={{ fontSize: '13px', color: '#cbd5e1', fontWeight: 500 }}>{status?.contacts?.maintenance || 'MOCK_GATEWAY'}</span>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-              <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>OPERATIONS CONTROL</span>
-              <span style={{ fontSize: '14px', color: '#cbd5e1', fontWeight: 500 }}>{status?.contacts?.operations || 'N/A'}</span>
+              <span className="palantir-mono" style={{ fontSize: '10px', color: '#5c7080', fontWeight: 600 }}>OPERATIONS CONTROLLERS</span>
+              <span className="palantir-mono" style={{ fontSize: '13px', color: '#cbd5e1', fontWeight: 500 }}>{status?.contacts?.operations || 'MOCK_GATEWAY'}</span>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-              <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>STATION MANAGERS FEED</span>
-              <span style={{ fontSize: '14px', color: '#cbd5e1', fontWeight: 500 }}>{status?.contacts?.station_manager || 'N/A'}</span>
+              <span className="palantir-mono" style={{ fontSize: '10px', color: '#5c7080', fontWeight: 600 }}>STATION MANAGERS DESK</span>
+              <span className="palantir-mono" style={{ fontSize: '13px', color: '#cbd5e1', fontWeight: 500 }}>{status?.contacts?.station_manager || 'MOCK_GATEWAY'}</span>
             </div>
           </div>
         </div>
@@ -1029,146 +1100,176 @@ function MainApp() {
     );
   };
 
-  const AgentFeedPanel = () => {
-    const logEndRef = useRef(null);
-    const [thinkingDots, setThinkingDots] = useState(1);
-    const latestLog = logs[logs.length - 1];
-    const latestPayload = latestLog?.data || {};
-    const isReasoning = latestPayload.agent === 'Reasoning Agent'
-      && String(latestPayload.message || '').startsWith('Analyzing ');
-
-    useEffect(() => {
-      if (!isReasoning) return;
-      const interval = setInterval(() => setThinkingDots(dots => dots % 3 + 1), 450);
-      return () => clearInterval(interval);
-    }, [isReasoning]);
-
-    useEffect(() => {
-      if (logEndRef.current) {
-        logEndRef.current.scrollIntoView({ behavior: 'smooth' });
+  const handleCommandSubmit = async (e) => {
+    e.preventDefault();
+    if (!commandText.trim()) return;
+    setCommandResult("Executing operational instruction...");
+    try {
+      const res = await fetch(`${API_BASE}/api/agent-command`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ command: commandText })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setCommandResult(data.response);
+        if (data.log) {
+          setLogs(prev => [...prev, { message: `[${new Date().toLocaleTimeString()}] ${data.log}` }].slice(-200));
+        }
+        setCommandText('');
+      } else {
+        setCommandResult("Error: Failed to process command.");
       }
-    }, [logs]);
-
-    return (
-      <div style={{
-        height: '250px',
-        backgroundColor: '#05070a',
-        borderTop: '1px solid #1a1e26',
-        display: 'flex',
-        flexDirection: 'column',
-        padding: '12px'
-      }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-          <h3 style={{ fontSize: '13px', fontWeight: 600, color: '#34d399', display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <Activity size={14} /> Agent Autonomous Activity Stream
-          </h3>
-          <button 
-            onClick={triggerHeroScenario}
-            disabled={isHeroRunning}
-            style={{ 
-              backgroundColor: isHeroRunning ? 'rgba(239, 68, 68, 0.2)' : 'transparent', 
-              border: isHeroRunning ? '1px solid #ef4444' : '1px dashed #ef4444', 
-              color: '#ef4444', fontSize: '10px', padding: '4px 8px', 
-              borderRadius: '4px', cursor: isHeroRunning ? 'not-allowed' : 'pointer', 
-              opacity: isHeroRunning ? 1 : 0.6,
-              fontWeight: 600,
-              display: 'flex',
-              alignItems: 'center',
-              gap: '4px'
-            }}
-            title="Simulate Major Incident"
-          >
-            🚨 {isHeroRunning ? "Scenario Running..." : "Ready"}
-          </button>
-        </div>
-        <div style={{
-          flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px',
-          fontFamily: 'system-ui, sans-serif', color: '#cbd5e1'
-        }}>
-          {logs.length === 0 ? (
-            <div style={{ color: '#64748b', fontStyle: 'italic', fontSize: '12px' }}>Awaiting autonomous activity...</div>
-          ) : (
-            logs.map((log, idx) => {
-              const payload = log.data || {};
-              const ts = payload.timestamp || log.message?.substring(1,9) || "";
-              const agent = payload.agent || "System";
-              const isActiveReasoningLog = idx === logs.length - 1
-                && agent === 'Reasoning Agent'
-                && String(payload.message || '').startsWith('Analyzing ');
-              const msg = payload.message === 'Reasoning Complete'
-                ? '✅ Reasoning Complete'
-                : isActiveReasoningLog
-                  ? `🧠 Reasoning Agent Analyzing Incident${'.'.repeat(thinkingDots)}`
-                  : payload.message || log.message || "";
-              
-              return (
-                <div key={idx} style={{ 
-                  display: 'flex', flexDirection: 'column', gap: '4px', 
-                  backgroundColor: 'rgba(52, 211, 153, 0.05)',
-                  padding: '10px 12px',
-                  borderRadius: '4px',
-                  borderLeft: '3px solid #34d399'
-                }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2px' }}>
-                    <span style={{ color: '#34d399', fontWeight: 700, fontSize: '12px' }}>{agent}</span>
-                    <span style={{ color: '#64748b', fontWeight: 600, fontSize: '11px' }}>{ts}</span>
-                  </div>
-                  
-                  {(payload.severity || payload.confidence) && (
-                    <div style={{ display: 'flex', gap: '16px', fontSize: '11px', color: '#94a3b8', fontWeight: 500, marginBottom: '4px' }}>
-                      {payload.severity && <span>Severity: <strong style={{color: payload.severity==='HIGH'?'#ef4444':'#f59e0b'}}>{payload.severity}</strong></span>}
-                      {payload.impact && <span>Passenger Impact: <strong>{payload.impact}</strong></span>}
-                      {payload.confidence && <span>Confidence: <strong>{payload.confidence}%</strong></span>}
-                    </div>
-                  )}
-                  
-                  <span style={{ color: '#e2e8f0', fontSize: '13px', lineHeight: '1.4' }}>{msg}</span>
-                </div>
-              );
-            })
-          )}
-          <div ref={logEndRef}></div>
-        </div>
-      </div>
-    );
-  };
+    } catch (err) {
+      setCommandResult("Error: Connection lost.");
+    }  };
 
   const renderContent = () => {
     switch (activeTab) {
       case 'Dashboard':
         const activeIncident = incidents.find(inc => inc.severity === 'critical' && inc.resolution_status !== 'resolved');
         return (
-          <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
-            {activeIncident && <IncidentCommandCenter incident={activeIncident} />}
-            <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
-              <div style={{
-                display: 'flex',
-                flexDirection: 'column',
-                flex: 1,
-                borderRight: '1px solid #1a1e26',
-                backgroundColor: '#0b0d10'
-              }}>
-                <div style={{ flex: 1, position: 'relative', display: 'flex', flexDirection: 'column' }}>
-                  <div style={{ flex: 1, position: 'relative' }}>
-                    <LiveMap trains={trains} />
-                  </div>
-                  <AgentFeedPanel />
+          <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              flex: 1,
+              borderRight: '1px solid #1a2433',
+              backgroundColor: '#080a0d'
+            }}>
+              <div style={{ flex: 1, position: 'relative' }}>
+                <LiveMap trains={trains} incidents={incidents} />
+                
+                {/* Floating AI Command Terminal Overlay */}
+                <div style={{
+                  position: 'absolute',
+                  top: '16px',
+                  left: '16px',
+                  zIndex: 1000,
+                  width: '320px',
+                  backgroundColor: 'rgba(13, 17, 23, 0.92)',
+                  border: '1px solid #1a2433',
+                  borderRadius: '0px',
+                  padding: '14px',
+                  boxShadow: '0 4px 20px rgba(0,0,0,0.6)',
+                  backdropFilter: 'blur(4px)',
+                  fontFamily: "'JetBrains Mono', monospace"
+                }}>
+                  <h4 style={{ margin: '0 0 8px 0', fontSize: '9px', fontWeight: 700, color: '#00f0ff', letterSpacing: '1px' }}>
+                    RAILMIND COGNITIVE TERMINAL
+                  </h4>
+                  <form onSubmit={handleCommandSubmit} style={{ display: 'flex', gap: '8px' }}>
+                    <input
+                      type="text"
+                      value={commandText}
+                      onChange={(e) => setCommandText(e.target.value)}
+                      placeholder="Ask RailMind agent (e.g. bypass CNB)..."
+                      style={{
+                        flex: 1,
+                        backgroundColor: '#05070a',
+                        border: '1px solid #1a2433',
+                        color: '#cbd5e1',
+                        fontSize: '10px',
+                        padding: '6px 8px',
+                        fontFamily: 'inherit',
+                        outline: 'none',
+                        borderRadius: '0px'
+                      }}
+                    />
+                    <button
+                      type="submit"
+                      style={{
+                        backgroundColor: '#00f0ff',
+                        color: '#080a0d',
+                        border: 'none',
+                        fontSize: '9px',
+                        fontWeight: 700,
+                        padding: '6px 12px',
+                        cursor: 'pointer',
+                        borderRadius: '0px'
+                      }}
+                    >
+                      EXECUTE
+                    </button>
+                  </form>
+                  {commandResult && (
+                    <div style={{
+                      marginTop: '8px',
+                      padding: '8px',
+                      backgroundColor: 'rgba(0, 240, 255, 0.03)',
+                      border: '1px dashed rgba(0, 240, 255, 0.2)',
+                      fontSize: '9px',
+                      color: '#00f0ff',
+                      lineHeight: '1.4',
+                      maxHeight: '80px',
+                      overflowY: 'auto'
+                    }}>
+                      {commandResult}
+                    </div>
+                  )}
                 </div>
-                <TaskBoard tasks={tasks} onResolve={handleResolve} />
               </div>
-              <IncidentFeed 
-                incidents={incidents} 
-                onApprove={handleApprove}
-                onAcknowledge={handleAcknowledge}
-              />
-            </div>
+              
+              {/* TaskBoard & SMS Outbox side-by-side split */}
+              <div style={{ display: 'flex', borderTop: '1px solid #1a2433', height: '240px' }}>
+                <div style={{ flex: 2, overflowY: 'auto' }}>
+                  <TaskBoard tasks={tasks} onResolve={handleResolve} />
+                </div>
+                <div style={{
+                  flex: 1,
+                  backgroundColor: '#0d1117',
+                  borderLeft: '1px solid #1a2433',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  padding: '16px',
+                  overflow: 'hidden'
+                }}>
+                  <h3 className="palantir-mono" style={{ fontSize: '10px', fontWeight: 700, color: '#5c7080', letterSpacing: '1.5px', marginBottom: '8px' }}>
+                    PASSENGER SMS DISPATCH OUTBOX
+                  </h3>
+                  <div style={{
+                    flex: 1,
+                    backgroundColor: '#05070a',
+                    border: '1px solid #1a2433',
+                    padding: '10px',
+                    overflowY: 'auto',
+                    fontFamily: "'JetBrains Mono', monospace",
+                    fontSize: '9px',
+                    color: '#8a9ba8',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '6px'
+                  }}>
+                    {smsLogs.length === 0 ? (
+                      <div style={{ color: '#5c7080', fontStyle: 'italic' }}>[OUTBOX] Awaiting alert triggers...</div>
+                    ) : (
+                      smsLogs.map((log, idx) => (
+                        <div key={idx} style={{
+                          borderBottom: '1px solid #121820',
+                          paddingBottom: '4px',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '2px'
+                        }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', color: '#ffb300', fontWeight: 600 }}>
+                            <span>TO: {log.to}</span>
+                            <span style={{ color: '#00e676' }}>[SENT]</span>
+                          </div>
+                          <p style={{ margin: 0, color: '#cbd5e1' }}>{log.body}</p>
+                          <span style={{ fontSize: '8px', color: '#5c7080' }}>SID: {log.sid}</span>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              </div>            </div>
           </div>
         );
 
       case 'Live Map':
         return (
           <div style={{ flex: 1, position: 'relative', height: '100%' }}>
-            <LiveMap trains={trains} />
+            <LiveMap trains={trains} incidents={incidents} />
           </div>
         );
 
@@ -1192,7 +1293,7 @@ function MainApp() {
         return <LogsView logs={logs} onClear={() => setLogs([])} />;
 
       case 'Telemetry':
-        return <TelemetryView />;
+        return <RouteIntelligence trains={trains} />;
 
       case 'Schedules':
         return <SchedulesView />;
@@ -1201,7 +1302,7 @@ function MainApp() {
         return <AssetsView />;
 
       default:
-        return <div style={{ padding: '24px' }}>Page not found</div>;
+        return <div className="palantir-mono" style={{ padding: '24px', fontSize: '12px' }}>[ PAGE NOT DEPLOYED ]</div>;
     }
   };
 
@@ -1210,7 +1311,7 @@ function MainApp() {
       display: 'flex',
       flexDirection: 'column',
       height: '100vh',
-      backgroundColor: '#0b0d10',
+      backgroundColor: '#080a0d',
       overflow: 'hidden'
     }}>
       <TopBar 
@@ -1232,20 +1333,21 @@ function MainApp() {
 
       {wsStatus === 'reconnecting' && (
         <div style={{
-          backgroundColor: '#ef4444',
+          backgroundColor: '#ff3366',
           color: '#ffffff',
           textAlign: 'center',
-          padding: '10px 24px',
-          fontSize: '13px',
-          fontWeight: 600,
-          letterSpacing: '0.5px',
+          padding: '8px 24px',
+          fontSize: '11px',
+          fontWeight: 700,
+          fontFamily: "'JetBrains Mono', monospace",
+          letterSpacing: '1px',
           display: 'flex',
           justifyContent: 'center',
           alignItems: 'center',
           gap: '8px',
           zIndex: 1000,
-          borderBottom: '1px solid #b91c1c',
-          boxShadow: '0 4px 6px -1px rgba(0,0,0,0.3)'
+          borderBottom: '1px solid #ff3366',
+          boxShadow: '0 4px 20px rgba(255, 51, 102, 0.2)'
         }}>
           <span style={{
             display: 'inline-block',
@@ -1255,12 +1357,12 @@ function MainApp() {
             borderRadius: '50%',
             animation: 'pulse-live 1s infinite'
           }}></span>
-          Agent offline — reconnecting...
+          [ OFFLINE // RE-ESTABLISHING AGENT CONNECTION... ]
         </div>
       )}
 
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
-        <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
+        <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} agentState={agentState} />
         {renderContent()}
       </div>
 
@@ -1272,59 +1374,62 @@ function MainApp() {
           left: 0,
           width: '100vw',
           height: '100vh',
-          backgroundColor: 'rgba(0,0,0,0.75)',
+          backgroundColor: 'rgba(5, 7, 10, 0.85)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           zIndex: 9999,
-          backdropFilter: 'blur(4px)'
+          backdropFilter: 'blur(3px)'
         }}>
           <div style={{
-            backgroundColor: '#11141a',
-            border: '1px solid #1a1e26',
-            borderRadius: '8px',
+            backgroundColor: '#0d1117',
+            border: '1px solid #00f0ff',
+            borderRadius: '0px',
             padding: '24px',
             width: '420px',
             display: 'flex',
             flexDirection: 'column',
-            gap: '16px'
+            gap: '16px',
+            boxShadow: '0 0 20px rgba(0, 240, 255, 0.2)'
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h3 style={{ fontSize: '16px', fontWeight: 600, color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Settings size={18} style={{ color: '#3b82f6' }} />
-                System Settings
+              <h3 className="palantir-mono" style={{ fontSize: '14px', fontWeight: 600, color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Settings size={18} style={{ color: '#00f0ff' }} />
+                SYSTEM // CONFIGURATION
               </h3>
-              <button onClick={() => setShowSettings(false)} style={{ backgroundColor: 'transparent', border: 'none', color: '#64748b', cursor: 'pointer' }}>
+              <button onClick={() => setShowSettings(false)} style={{ backgroundColor: 'transparent', border: 'none', color: '#5c7080', cursor: 'pointer' }}>
                 <X size={18} />
               </button>
             </div>
             
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', fontSize: '13px', color: '#cbd5e1' }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <input type="checkbox" defaultChecked /> Enable autonomous routing agent
+            <div className="palantir-mono" style={{ display: 'flex', flexDirection: 'column', gap: '12px', fontSize: '11px', color: '#cbd5e1' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                <input type="checkbox" defaultChecked style={{ accentColor: '#00f0ff' }} /> ALLOW COGNITIVE REROUTING DISPATCH
               </label>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <input type="checkbox" defaultChecked /> Fallback JSON database mode active
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                <input type="checkbox" defaultChecked style={{ accentColor: '#00f0ff' }} /> TELEMETRY CACHE / DATABASE FALLBACK
               </label>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <input type="checkbox" defaultChecked /> WebSocket notifications active
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                <input type="checkbox" defaultChecked style={{ accentColor: '#00f0ff' }} /> ENABLE REAL-TIME WS STREAMING
               </label>
             </div>
 
             <button
               onClick={() => setShowSettings(false)}
+              className="palantir-mono"
               style={{
                 marginTop: '10px',
                 padding: '8px 16px',
-                backgroundColor: '#3b82f6',
-                color: '#fff',
+                backgroundColor: '#00f0ff',
+                color: '#080a0d',
                 border: 'none',
-                borderRadius: '6px',
-                fontWeight: 600,
+                borderRadius: '0px',
+                fontWeight: 700,
+                fontSize: '11px',
                 cursor: 'pointer'
               }}
             >
-              Save Configuration
+              SAVE CONFIGURATION
             </button>
           </div>
         </div>
@@ -1338,54 +1443,40 @@ function MainApp() {
           left: 0,
           width: '100vw',
           height: '100vh',
-          backgroundColor: 'rgba(0,0,0,0.75)',
+          backgroundColor: 'rgba(5, 7, 10, 0.85)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           zIndex: 9999,
-          backdropFilter: 'blur(4px)'
+          backdropFilter: 'blur(3px)'
         }}>
           <div style={{
-            backgroundColor: '#11141a',
-            border: '1px solid #1a1e26',
-            borderRadius: '8px',
+            backgroundColor: '#0d1117',
+            border: '1px solid #ff3366',
+            borderRadius: '0px',
             padding: '24px',
             width: '420px',
             maxHeight: '400px',
             display: 'flex',
             flexDirection: 'column',
-            gap: '16px'
+            gap: '16px',
+            boxShadow: '0 0 20px rgba(255, 51, 102, 0.15)'
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h3 style={{ fontSize: '16px', fontWeight: 600, color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Bell size={18} style={{ color: '#ef4444' }} />
-                Real-Time Alert Feed
+              <h3 className="palantir-mono" style={{ fontSize: '14px', fontWeight: 600, color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Bell size={18} style={{ color: '#ff3366' }} />
+                REAL-TIME WARNINGS STREAM
               </h3>
-              <button onClick={() => setShowNotifications(false)} style={{ backgroundColor: 'transparent', border: 'none', color: '#64748b', cursor: 'pointer' }}>
+              <button onClick={() => setShowNotifications(false)} style={{ backgroundColor: 'transparent', border: 'none', color: '#5c7080', cursor: 'pointer' }}>
                 <X size={18} />
               </button>
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', overflowY: 'auto', flex: 1 }}>
-              {incidents.slice(0, 5).map(inc => (
-                <div key={inc.id} style={{
-                  backgroundColor: '#161920',
-                  border: '1px solid #1a1e26',
-                  padding: '10px 14px',
-                  borderRadius: '4px',
-                  fontSize: '12px',
-                  color: '#cbd5e1'
-                }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                    <span style={{ color: '#ef4444', fontWeight: 600 }}>{inc.severity.toUpperCase()}</span>
-                    <span style={{ color: '#64748b' }}>{inc.timestamp}</span>
-                  </div>
-                  {inc.title}
-                </div>
-              ))}
+              {recentIncidentElements}
               {incidents.length === 0 && (
-                <div style={{ color: '#64748b', fontStyle: 'italic', textAlign: 'center', padding: '20px' }}>
-                  No notifications recorded.
+                <div className="palantir-mono" style={{ color: '#5c7080', fontStyle: 'italic', textAlign: 'center', padding: '20px', fontSize: '11px' }}>
+                  [ NO SYSTEM ALERTS RECORDED ]
                 </div>
               )}
             </div>
@@ -1401,27 +1492,28 @@ function MainApp() {
           left: 0,
           width: '100vw',
           height: '100vh',
-          backgroundColor: 'rgba(0,0,0,0.75)',
+          backgroundColor: 'rgba(5, 7, 10, 0.85)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           zIndex: 9999,
-          backdropFilter: 'blur(4px)'
+          backdropFilter: 'blur(3px)'
         }}>
           <div style={{
-            backgroundColor: '#11141a',
-            border: '1px solid #1a1e26',
-            borderRadius: '8px',
+            backgroundColor: '#0d1117',
+            border: '1px solid #00f0ff',
+            borderRadius: '0px',
             padding: '28px',
             width: '380px',
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
             gap: '16px',
-            textAlign: 'center'
+            textAlign: 'center',
+            boxShadow: '0 0 20px rgba(0, 240, 255, 0.2)'
           }}>
-            <div style={{ alignSelf: 'stretch', display: 'flex', justifyContent: 'flex-end' }}>
-              <button onClick={() => setShowProfile(false)} style={{ backgroundColor: 'transparent', border: 'none', color: '#64748b', cursor: 'pointer' }}>
+            <div style={{ alignSelf: 'stretch', display: 'flex', justifySelf: 'flex-end', justifyContent: 'flex-end' }}>
+              <button onClick={() => setShowProfile(false)} style={{ backgroundColor: 'transparent', border: 'none', color: '#5c7080', cursor: 'pointer' }}>
                 <X size={18} />
               </button>
             </div>
@@ -1429,10 +1521,10 @@ function MainApp() {
             <div style={{
               width: '80px',
               height: '80px',
-              borderRadius: '50%',
+              borderRadius: '0px',
               overflow: 'hidden',
-              border: '2px solid #3b82f6',
-              boxShadow: '0 0 15px rgba(59, 130, 246, 0.4)'
+              border: '1px solid #00f0ff',
+              boxShadow: '0 0 15px rgba(0, 240, 255, 0.3)'
             }}>
               <img 
                 src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80" 
@@ -1442,20 +1534,20 @@ function MainApp() {
             </div>
 
             <div>
-              <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#f8fafc' }}>Operator: Shreyam</h3>
-              <p style={{ fontSize: '13px', color: '#3b82f6', fontWeight: 600 }}>Chief Operations Manager</p>
+              <h3 className="palantir-mono" style={{ fontSize: '15px', fontWeight: 700, color: '#f8fafc' }}>OPERATOR // SHREYAM</h3>
+              <p className="palantir-mono" style={{ fontSize: '11px', color: '#00f0ff', fontWeight: 600 }}>CHIEF OPERATIONS MANAGER</p>
             </div>
 
-            <div style={{ width: '100%', height: '1px', backgroundColor: '#1a1e26' }}></div>
+            <div style={{ width: '100%', height: '1px', backgroundColor: '#1a2433' }}></div>
 
-            <div style={{ alignSelf: 'stretch', display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '12px', color: '#cbd5e1' }}>
+            <div className="palantir-mono" style={{ alignSelf: 'stretch', display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '11px', color: '#cbd5e1' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ color: '#64748b' }}>Operations Terminal</span>
-                <span>SECURE-NODE-ALPHA</span>
+                <span style={{ color: '#5c7080' }}>OPERATIONS TERMINAL</span>
+                <span>SEC-NODE-ALPHA</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ color: '#64748b' }}>Authorization Level</span>
-                <span style={{ color: '#f59e0b', fontWeight: 600 }}>LEVEL 5 (Full Command)</span>
+                <span style={{ color: '#5c7080' }}>AUTHORIZATION LEVEL</span>
+                <span style={{ color: '#ffb300', fontWeight: 600 }}>SEC-LEVEL-5</span>
               </div>
             </div>
           </div>

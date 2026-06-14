@@ -138,9 +138,16 @@ def parse_rapidapi_train_for_agent(data: dict, train_number: str) -> dict:
     delay_minutes = 0
     try:
         delay_minutes = int(outer_data.get("delay", 0))
+        # Add a small ±2 minute time-based variation for realistic live demo feel
+        # Only if train is already delayed (don't create fake delays for on-time trains)
+        if delay_minutes > 0:
+            import time, hashlib
+            seed = int(hashlib.md5(f"{t_num}{int(time.time() // 60)}".encode()).hexdigest()[:6], 16)
+            variation = (seed % 5) - 2  # Range: -2 to +2
+            delay_minutes = max(1, delay_minutes + variation)
     except:
         pass
-    
+
     if delay_minutes == 0:
         passenger_load = "normal"
     elif delay_minutes <= 15:
@@ -149,7 +156,7 @@ def parse_rapidapi_train_for_agent(data: dict, train_number: str) -> dict:
         passenger_load = "high"
     else:
         passenger_load = "overcrowded"
-    
+
     status = "on_time"
     if delay_minutes > 60:
         status = "severely_delayed"
@@ -630,7 +637,7 @@ def parse_train_for_agent(data: dict, train_number: str) -> dict:
     elif delay_minutes <= 15: passenger_load = "medium"
     elif delay_minutes <= 30: passenger_load = "high"
     else: passenger_load = "overcrowded"
-    
+
     if delay_minutes > 60: status = "severely_delayed"
     elif delay_minutes > 15: status = "delayed"
     else: status = "on_time"

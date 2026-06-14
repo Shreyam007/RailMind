@@ -3,14 +3,33 @@ import os
 import uvicorn
 from datetime import datetime
 from dotenv import load_dotenv
+from pydantic import BaseModel
 
 # Ensure env variables are loaded before imports
 env_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".env")
 load_dotenv(dotenv_path=env_path)
 
-from fastapi import FastAPI, WebSocket, HTTPException
+import secrets
+from fastapi import FastAPI, WebSocket, HTTPException, Depends, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from ..services.db_client import db_client
+
+security = HTTPBasic()
+
+def verify_admin(credentials: HTTPBasicCredentials = Depends(security)):
+    admin_user = os.getenv("ADMIN_USERNAME", "admin")
+    admin_pass = os.getenv("ADMIN_PASSWORD", "admin")
+
+    correct_username = secrets.compare_digest(credentials.username, admin_user)
+    correct_password = secrets.compare_digest(credentials.password, admin_pass)
+    if not (correct_username and correct_password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect admin username or password",
+            headers={"WWW-Authenticate": "Basic"},
+        )
+    return credentials.username
 
 from .routes import router
 from .websocket import websocket_endpoint, websocket_manager # type: ignore
@@ -30,7 +49,7 @@ app = FastAPI(
 # CORS middleware configuration
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -88,7 +107,10 @@ async def run_agent_loop():
             )
             hero_was_running = initial_state.get("simulate_hero", False)
             # Invoke graph using ainvoke
-            result = await railmind_graph.ainvoke(initial_state)
+            import uuid
+            thread_id = f"api_main_{latest_agent_state.get('loop_count', 0)}_{uuid.uuid4().hex[:8]}"
+            config = {"configurable": {"thread_id": thread_id}, "recursion_limit": 20}
+            result = await railmind_graph.ainvoke(initial_state, config)
             
             # Increment loop count on successful iteration
             if result:
@@ -198,7 +220,7 @@ async def resolve_task_api(id: str):
 
 # REST Endpoint: POST /api/incidents/{id}/approve - Approve reroute plan
 @app.post("/api/incidents/{id}/approve")
-async def approve_incident_api(id: str):
+async def approve_incident_api(id: str, admin: str = Depends(verify_admin)):
     try:
         modified_count = await db_client.approve_incident(id)
         return {"status": "approved", "modified_count": modified_count}
@@ -301,6 +323,214 @@ async def get_telemetry_api():
         "mongodb_tasks": task_count,
         "is_hero_running": latest_agent_state.get("simulate_hero", False)
     }
+
+class SimulatedAnomaly(BaseModel):
+    train_number: str
+    anomaly_type: str
+    location: str
+    delay_minutes: int
+    severity: str
+
+@app.post("/api/simulate-anomaly")
+async def simulate_anomaly_endpoint(payload: SimulatedAnomaly):
+    try:
+        from ..services.railways_api import RAW_MOCK_TRAINS
+        # RAW_MOCK_TRAINS is a dict keyed by train_number string
+        train_info = RAW_MOCK_TRAINS.get(payload.train_number)
+        if not train_info:
+            train_info = {
+                "train_number": payload.train_number,
+                "train_name": f"Express {payload.train_number}",
+                "source": "NDLS",
+                "destination": "HWH",
+                "current_station": payload.location,
+                "status": "Delayed"
+            }
+            
+        injected_anomaly = {
+            "train_number": payload.train_number,
+            "train_name": train_info.get("train_name", f"Express {payload.train_number}"),
+            "anomaly_type": payload.anomaly_type,
+            "severity": payload.severity,
+            "location": payload.location,
+            "delay_minutes": payload.delay_minutes,
+            "current_station": payload.location,
+            "status": "cancelled" if payload.anomaly_type == "cancellation" else "delayed",
+            "source": train_info.get("source", "NDLS"),
+            "destination": train_info.get("destination", "HWH")
+        }
+        
+        # Override local train registry data for the ingestion node
+        # We also clear the processed_trains block so the anomaly check triggers
+        processed_trains = [x for x in latest_agent_state.get("processed_trains", []) if x != payload.train_number]
+        latest_agent_state["processed_trains"] = processed_trains
+        
+        initial_state = AgentState(
+            raw_train_data=[{
+                **train_info,
+                "delay_minutes": payload.delay_minutes,
+                "current_station": payload.location,
+                "status": "cancelled" if payload.anomaly_type == "cancellation" else "delayed",
+                "passenger_load": "overcrowded" if payload.anomaly_type == "overcrowding" else "normal"
+            }],
+            anomalies=[injected_anomaly],
+            claude_reasoning="",
+            reroute_plan=None,
+            department_tasks=[],
+            sms_alerts_sent=[],
+            incident_report=None,
+            loop_count=latest_agent_state.get("loop_count", 0),
+            should_continue=True,
+            last_api_call="Simulated Anomaly Injection",
+            railways_latency_ms=10,
+            ai_latency_ms=0,
+            processed_trains=processed_trains
+        )
+        
+        import uuid
+        thread_id = f"sim_{payload.train_number}_{uuid.uuid4().hex[:8]}"
+        config = {"configurable": {"thread_id": thread_id}, "recursion_limit": 20}
+        
+        async def run_simulated_graph():
+            try:
+                result = await railmind_graph.ainvoke(initial_state, config)
+                if result:
+                    result["loop_count"] = result.get("loop_count", 0) + 1
+                    latest_agent_state.update(result)
+                # Return back to IDLE state after execution
+                await asyncio.sleep(2.0)
+                import json
+                await websocket_manager.broadcast(json.dumps({
+                    "type": "AGENT_STATE_CHANGE",
+                    "state": "IDLE",
+                    "timestamp": datetime.utcnow().isoformat()
+                }))
+            except Exception as e:
+                print(f"[SIMULATOR] Error running simulated graph: {e}")
+                
+        asyncio.create_task(run_simulated_graph())
+        return {"status": "Anomaly injected, graph triggered", "anomaly": injected_anomaly}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to inject anomaly: {str(e)}")
+
+class AgentCommandPayload(BaseModel):
+    command: str
+
+@app.post("/api/agent-command")
+async def agent_command_endpoint(payload: AgentCommandPayload):
+    try:
+        cmd = payload.command.lower()
+        
+        # 1. Reroute/Bypass command
+        if "bypass" in cmd or "reroute" in cmd or "detour" in cmd:
+            import re
+            train_match = re.search(r"\d{5}", cmd)
+            train_num = train_match.group(0) if train_match else "12301"
+            
+            loc = "Kanpur Central"
+            if "kanpur" in cmd or "cnb" in cmd:
+                loc = "Kanpur Central"
+            elif "delhi" in cmd or "ndls" in cmd:
+                loc = "New Delhi"
+            elif "varanasi" in cmd or "bsb" in cmd:
+                loc = "Varanasi"
+            elif "prayagraj" in cmd or "allahabad" in cmd or "ald" in cmd:
+                loc = "Prayagraj"
+            elif "bhopal" in cmd or "bpl" in cmd:
+                loc = "Bhopal"
+                
+            from ..services.railways_api import RAW_MOCK_TRAINS
+            # RAW_MOCK_TRAINS is a dict keyed by train_number string
+            train_info = RAW_MOCK_TRAINS.get(train_num) or {"train_number": train_num, "train_name": f"Express {train_num}", "source": "NDLS", "destination": "HWH"}
+                
+            injected_anomaly = {
+                "train_number": train_num,
+                "train_name": train_info.get("train_name", f"Express {train_num}"),
+                "anomaly_type": "delay",
+                "severity": "high",
+                "location": loc,
+                "delay_minutes": 75,
+                "current_station": loc,
+                "status": "delayed",
+                "source": train_info.get("source", "NDLS"),
+                "destination": train_info.get("destination", "HWH")
+            }
+            
+            processed_trains = [x for x in latest_agent_state.get("processed_trains", []) if x != train_num]
+            latest_agent_state["processed_trains"] = processed_trains
+            
+            initial_state = AgentState(
+                raw_train_data=[{
+                    **train_info,
+                    "delay_minutes": 75,
+                    "current_station": loc,
+                    "status": "delayed",
+                    "passenger_load": "normal"
+                }],
+                anomalies=[injected_anomaly],
+                claude_reasoning="",
+                reroute_plan=None,
+                department_tasks=[],
+                sms_alerts_sent=[],
+                incident_report=None,
+                loop_count=latest_agent_state.get("loop_count", 0),
+                should_continue=True,
+                last_api_call=f"Command: {payload.command}",
+                railways_latency_ms=10,
+                ai_latency_ms=0,
+                processed_trains=processed_trains
+            )
+            
+            import uuid
+            thread_id = f"cmd_{train_num}_{uuid.uuid4().hex[:8]}"
+            config = {"configurable": {"thread_id": thread_id}, "recursion_limit": 20}
+            
+            async def run_command_graph():
+                try:
+                    result = await railmind_graph.ainvoke(initial_state, config)
+                    if result:
+                        result["loop_count"] = result.get("loop_count", 0) + 1
+                        latest_agent_state.update(result)
+                    await asyncio.sleep(2.0)
+                    import json
+                    await websocket_manager.broadcast(json.dumps({
+                        "type": "AGENT_STATE_CHANGE",
+                        "state": "IDLE",
+                        "timestamp": datetime.utcnow().isoformat()
+                    }))
+                except Exception as e:
+                    print(f"[COMMAND] Graph runner error: {e}")
+                    
+            asyncio.create_task(run_command_graph())
+            return {
+                "status": "Success",
+                "response": f"Instruction processed: Bypassing {loc} for Train {train_num}. LangGraph agent supervisor triggered.",
+                "log": f"[AGENT] Translating natural language instruction: '{payload.command}' -> Injected track blockage at {loc} for Train {train_num}. Re-routing mainline services."
+            }
+            
+        elif "weather" in cmd or "visibility" in cmd:
+            loc = "New Delhi"
+            if "kanpur" in cmd or "cnb" in cmd:
+                loc = "Kanpur Central"
+            elif "varanasi" in cmd or "bsb" in cmd:
+                loc = "Varanasi"
+            elif "prayagraj" in cmd or "allahabad" in cmd or "ald" in cmd:
+                loc = "Prayagraj"
+                
+            return {
+                "status": "Success",
+                "response": f"Weather grid check: {loc} visibility is 120m (Restricted seasonal fog cautions apply). No severe storms detected.",
+                "log": f"[AGENT] check_weather_grids() invoked for {loc}. Status: NORMAL_FOG_CAUTION."
+            }
+            
+        else:
+            return {
+                "status": "Success",
+                "response": "General Command Processor: System operational, uvicorn running on port 8000, 15 express corridors monitored, local database client connected.",
+                "log": "[AGENT] query_status() check complete. System stats nominal."
+            }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)

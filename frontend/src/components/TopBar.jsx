@@ -1,18 +1,26 @@
 /* eslint-disable */
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Bell, Settings } from 'lucide-react';
 
 export default function TopBar({ loopCount = 0, incidentCount = 0, wsStatus = 'connected', onNotificationsClick, onSettingsClick, onProfileClick, activeTab = 'Dashboard', onTabChange }) {
   const tabs = ['Network', 'Telemetry', 'Schedules', 'Assets'];
   const activeTopTab = ['Telemetry', 'Schedules', 'Assets'].includes(activeTab) ? activeTab : 'Network';
-
   const isConnected = wsStatus === 'connected';
+
+  // Live countdown timer for next agent cycle (30s cycle)
+  const [cycleCountdown, setCycleCountdown] = useState(30);
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCycleCountdown(prev => prev <= 1 ? 30 : prev - 1);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <div style={{
       height: '64px',
-      backgroundColor: '#11141a',
-      borderBottom: '1px solid #1a1e26',
+      backgroundColor: '#0d1117',
+      borderBottom: '1px solid #1a2433',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'space-between',
@@ -22,12 +30,12 @@ export default function TopBar({ loopCount = 0, incidentCount = 0, wsStatus = 'c
       {/* Left section: Logo & Nav tabs */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '32px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span style={{
-            fontSize: '22px',
+          <span className="palantir-mono" style={{
+            fontSize: '18px',
             fontWeight: 700,
-            color: '#a5b4fc', 
-            letterSpacing: '-0.75px'
-          }}>RailMind</span>
+            color: '#e2e8f0', 
+            letterSpacing: '1px'
+          }}>RAILMIND <span style={{ color: '#5c7080', fontWeight: 500 }}>// COMMAND CENTER</span></span>
         </div>
         
         {/* Nav tabs */}
@@ -41,14 +49,15 @@ export default function TopBar({ loopCount = 0, incidentCount = 0, wsStatus = 'c
                 style={{
                   backgroundColor: 'transparent',
                   border: 'none',
-                  borderBottom: isActive ? '2px solid #3b82f6' : '2px solid transparent',
-                  color: isActive ? '#f8fafc' : '#94a3b8',
+                  borderBottom: isActive ? '2px solid #00f0ff' : '2px solid transparent',
+                  color: isActive ? '#00f0ff' : '#8a9ba8',
                   cursor: 'pointer',
-                  fontFamily: 'inherit',
-                  fontSize: '15px',
+                  fontFamily: "'JetBrains Mono', monospace",
+                  fontSize: '13px',
                   fontWeight: isActive ? 600 : 500,
                   height: '64px',
                   padding: '0 4px',
+                  textTransform: 'uppercase',
                   transition: 'all 0.2s ease'
                 }}
               >
@@ -60,73 +69,127 @@ export default function TopBar({ loopCount = 0, incidentCount = 0, wsStatus = 'c
       </div>
 
       {/* Right section: System state indicators & settings */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
         
+        {/* Search Bar */}
+        <div style={{ display: 'flex', alignItems: 'center', position: 'relative' }}>
+          <input 
+            type="text" 
+            placeholder="Search or Enter Command" 
+            className="palantir-mono"
+            style={{
+              backgroundColor: '#080a0d',
+              border: '1px solid #1a2433',
+              borderRadius: '2px',
+              color: '#f8fafc',
+              padding: '6px 12px 6px 28px',
+              fontSize: '11px',
+              width: '180px',
+              outline: 'none',
+              transition: 'border-color 0.2s'
+            }}
+            onFocus={(e) => e.target.style.borderColor = '#00f0ff'}
+            onBlur={(e) => e.target.style.borderColor = '#1a2433'}
+          />
+          <svg 
+            style={{ position: 'absolute', left: '8px', width: '12px', height: '12px', color: '#5c7080' }} 
+            fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+        </div>
+
         {/* Live and Counts indicators box */}
         <div style={{
           display: 'flex',
           alignItems: 'center',
-          backgroundColor: '#0a0c10',
-          border: '1px solid #1e293b',
-          borderRadius: '6px',
+          backgroundColor: '#080a0d',
+          border: '1px solid #1a2433',
+          borderRadius: '2px',
           padding: '6px 14px',
           gap: '16px'
         }}>
           {/* LIVE/OFFLINE status */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span 
-              className={isConnected ? "pulse-dot-green" : ""} 
+              className={isConnected ? "pulse-dot-cyan" : ""} 
               style={{
                 display: 'inline-block',
-                width: '8px',
-                height: '8px',
-                backgroundColor: isConnected ? '#10b981' : '#ef4444',
+                width: '6px',
+                height: '6px',
+                backgroundColor: isConnected ? '#00e676' : '#ff3366',
                 borderRadius: '50%'
               }}
             ></span>
-            <span style={{ 
+            <span className="palantir-mono" style={{ 
               fontSize: '11px', 
               fontWeight: 600, 
-              color: isConnected ? '#10b981' : '#ef4444', 
+              color: isConnected ? '#00e676' : '#ff3366', 
               letterSpacing: '0.5px' 
             }}>
-              {isConnected ? 'LIVE' : 'OFFLINE'}
+              {isConnected ? 'SYS // ONLINE' : 'SYS // OFFLINE'}
             </span>
           </div>
           
-          <div style={{ width: '1px', height: '14px', backgroundColor: '#1e293b' }}></div>
+          <div style={{ width: '1px', height: '14px', backgroundColor: '#1a2433' }}></div>
 
           {/* LOOP COUNT */}
           <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
-            <span style={{ fontSize: '9px', fontWeight: 600, color: '#64748b', letterSpacing: '0.5px' }}>LOOP COUNT</span>
-            <span style={{ fontSize: '13px', fontWeight: 700, color: '#3b82f6' }}>{loopCount}</span>
+            <span className="palantir-mono" style={{ fontSize: '10px', fontWeight: 600, color: '#5c7080', letterSpacing: '0.5px' }}>RUNS:</span>
+            <span className="palantir-mono" style={{ fontSize: '13px', fontWeight: 700, color: '#00f0ff' }}>[{loopCount < 10 ? '0' + loopCount : loopCount}]</span>
           </div>
 
-          <div style={{ width: '1px', height: '14px', backgroundColor: '#1e293b' }}></div>
+          <div style={{ width: '1px', height: '14px', backgroundColor: '#1a2433' }}></div>
 
           {/* INCIDENTS count */}
           <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
-            <span style={{ fontSize: '9px', fontWeight: 600, color: '#64748b', letterSpacing: '0.5px' }}>INCIDENTS</span>
-            <span style={{ fontSize: '13px', fontWeight: 700, color: '#ef4444' }}>{incidentCount}</span>
+            <span className="palantir-mono" style={{ fontSize: '10px', fontWeight: 600, color: '#5c7080', letterSpacing: '0.5px' }}>ANOMALIES:</span>
+            <span className="palantir-mono" style={{ fontSize: '13px', fontWeight: 700, color: '#ff3366' }}>[{incidentCount < 10 ? '0' + incidentCount : incidentCount}]</span>
+          </div>
+
+          <div style={{ width: '1px', height: '14px', backgroundColor: '#1a2433' }}></div>
+
+          {/* Next agent cycle countdown */}
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
+            <span className="palantir-mono" style={{ fontSize: '10px', fontWeight: 600, color: '#5c7080', letterSpacing: '0.5px' }}>NEXT CYCLE:</span>
+            <span className="palantir-mono" style={{ 
+              fontSize: '13px', 
+              fontWeight: 700, 
+              color: cycleCountdown <= 5 ? '#ff3366' : '#ffb300',
+              transition: 'color 0.3s'
+            }}>{cycleCountdown}s</span>
           </div>
         </div>
 
         {/* Bell notification */}
-        <button 
-          onClick={onNotificationsClick}
-          style={{
-            backgroundColor: 'transparent',
-            border: 'none',
-            color: '#cbd5e1',
-            cursor: 'pointer',
-            padding: '6px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            transition: 'color 0.2s'
-          }} onMouseEnter={(e) => e.currentTarget.style.color = '#fff'} onMouseLeave={(e) => e.currentTarget.style.color = '#cbd5e1'}>
-          <Bell size={20} />
-        </button>
+        <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+          <button 
+            onClick={onNotificationsClick}
+            style={{
+              backgroundColor: 'transparent',
+              border: 'none',
+              color: '#8a9ba8',
+              cursor: 'pointer',
+              padding: '6px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              transition: 'color 0.2s'
+            }} onMouseEnter={(e) => e.currentTarget.style.color = '#00f0ff'} onMouseLeave={(e) => e.currentTarget.style.color = '#8a9ba8'}>
+            <Bell size={18} />
+          </button>
+          {incidentCount > 0 && (
+            <span style={{
+              position: 'absolute',
+              top: '4px',
+              right: '4px',
+              width: '6px',
+              height: '6px',
+              backgroundColor: '#ff3366',
+              borderRadius: '50%'
+            }} />
+          )}
+        </div>
 
         {/* Settings */}
         <button 
@@ -134,26 +197,26 @@ export default function TopBar({ loopCount = 0, incidentCount = 0, wsStatus = 'c
           style={{
             backgroundColor: 'transparent',
             border: 'none',
-            color: '#cbd5e1',
+            color: '#8a9ba8',
             cursor: 'pointer',
             padding: '6px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             transition: 'color 0.2s'
-          }} onMouseEnter={(e) => e.currentTarget.style.color = '#fff'} onMouseLeave={(e) => e.currentTarget.style.color = '#cbd5e1'}>
-          <Settings size={20} />
+          }} onMouseEnter={(e) => e.currentTarget.style.color = '#00f0ff'} onMouseLeave={(e) => e.currentTarget.style.color = '#8a9ba8'}>
+          <Settings size={18} />
         </button>
 
         {/* Profile Avatar */}
         <div 
           onClick={onProfileClick}
           style={{
-            width: '32px',
-            height: '32px',
-            borderRadius: '50%',
+            width: '28px',
+            height: '28px',
+            borderRadius: '2px',
             overflow: 'hidden',
-            border: '1px solid #3b82f6',
+            border: '1px solid #1a2433',
             cursor: 'pointer'
           }}>
           <img 
