@@ -111,9 +111,12 @@ export default function IncidentFeed({ incidents = [], onApprove, onAcknowledge 
                     {incident.reroute_plan && (
                       <div>
                         <span style={{ color: '#00f0ff', fontWeight: 600 }}>REROUTE COMMAND:</span> {incident.reroute_plan}
-                        {!incident.approved && (
+                        {incident.approved ? (
+                          <span className="palantir-mono" style={{ color: '#00e676', marginLeft: '8px', fontWeight: 700 }}>Approved</span>
+                        ) : (
                           <button 
                             onClick={(e) => { e.stopPropagation(); onApprove && onApprove(incident.id); }}
+                            className="palantir-mono"
                             style={{
                               marginLeft: '8px',
                               padding: '2px 8px',
@@ -125,7 +128,7 @@ export default function IncidentFeed({ incidents = [], onApprove, onAcknowledge 
                               cursor: 'pointer'
                             }}
                           >
-                            APPROVE
+                            Approve Route Change
                           </button>
                         )}
                       </div>

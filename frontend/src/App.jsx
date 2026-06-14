@@ -719,7 +719,7 @@ function MainApp() {
     }, []);
 
     if (loading && !telemetry) {
-      return <div className="palantir-mono" style={{ padding: '24px', color: '#8a9ba8', fontSize: '12px' }}>[ RETRIEVING TELEMETRY DATA... ]</div>;
+      return <div className="palantir-mono" style={{ padding: '24px', color: '#8a9ba8', fontSize: '12px' }}>[ Retrieving Sensor Data... ]</div>;
     }
 
     const metrics = [
@@ -735,8 +735,8 @@ function MainApp() {
     return (
       <div style={{ padding: '24px', flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '20px' }}>
         <div>
-          <h2 className="palantir-mono" style={{ fontSize: '18px', fontWeight: 600, color: '#f8fafc' }}>SYSTEM METRICS TELEMETRY</h2>
-          <p className="palantir-mono" style={{ fontSize: '11px', color: '#5c7080' }}>REAL-TIME HARDWARE & MULTI-AGENT STATE DATA</p>
+          <h2 className="palantir-mono" style={{ fontSize: '18px', fontWeight: 600, color: '#f8fafc' }}>System Metrics & Sensor Data</h2>
+          <p className="palantir-mono" style={{ fontSize: '11px', color: '#5c7080' }}>Real-time Hardware & Multi-agent State Data</p>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '16px' }}>
@@ -784,14 +784,14 @@ function MainApp() {
     }, []);
 
     if (loading && scheduleTrains.length === 0) {
-      return <div className="palantir-mono" style={{ padding: '24px', color: '#8a9ba8', fontSize: '12px' }}>[ RETRIEVING LIVE TIMETABLES... ]</div>;
+      return <div className="palantir-mono" style={{ padding: '24px', color: '#8a9ba8', fontSize: '12px' }}>[ Retrieving Timetable... ]</div>;
     }
 
     return (
       <div style={{ padding: '24px', flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '20px' }}>
         <div>
-          <h2 className="palantir-mono" style={{ fontSize: '18px', fontWeight: 600, color: '#f8fafc' }}>NETWORK TRACK SCHEDULES</h2>
-          <p className="palantir-mono" style={{ fontSize: '11px', color: '#5c7080' }}>AUTO-REFRESH INTERVAL [30S]</p>
+          <h2 className="palantir-mono" style={{ fontSize: '18px', fontWeight: 600, color: '#f8fafc' }}>Rail Network Timetable</h2>
+          <p className="palantir-mono" style={{ fontSize: '11px', color: '#5c7080' }}>Auto-refresh Interval [30s]</p>
         </div>
 
         <div style={{
@@ -864,7 +864,7 @@ function MainApp() {
     }, []);
 
     if (loading && !status) {
-      return <div className="palantir-mono" style={{ padding: '24px', color: '#8a9ba8', fontSize: '12px' }}>[ RESOLVING SYSTEM ASSETS CONNECTION MAP... ]</div>;
+      return <div className="palantir-mono" style={{ padding: '24px', color: '#8a9ba8', fontSize: '12px' }}>[ Connecting to System Fleet... ]</div>;
     }
 
     const services = [
@@ -878,8 +878,8 @@ function MainApp() {
     return (
       <div style={{ padding: '24px', flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '24px' }}>
         <div>
-          <h2 className="palantir-mono" style={{ fontSize: '18px', fontWeight: 600, color: '#f8fafc' }}>SYSTEM REGISTRY & ASSETS</h2>
-          <p className="palantir-mono" style={{ fontSize: '11px', color: '#5c7080' }}>NODE NETWORKS & ASSET DEPLOYMENTS STATUS</p>
+          <h2 className="palantir-mono" style={{ fontSize: '18px', fontWeight: 600, color: '#f8fafc' }}>System Registry & Fleet</h2>
+          <p className="palantir-mono" style={{ fontSize: '11px', color: '#5c7080' }}>Node Networks & Fleet Status</p>
         </div>
 
         {/* Connection Cards */}
@@ -991,13 +991,13 @@ function MainApp() {
       case 'Logs':
         return <LogsView logs={logs} onClear={() => setLogs([])} />;
 
-      case 'Telemetry':
+      case 'Sensor Data':
         return <RouteIntelligence trains={trains} />;
 
-      case 'Schedules':
+      case 'Timetable':
         return <SchedulesView />;
 
-      case 'Assets':
+      case 'Fleet':
         return <AssetsView />;
 
       default:
@@ -1019,7 +1019,7 @@ function MainApp() {
         wsStatus={wsStatus} 
         activeTab={activeTab}
         onTabChange={(tab) => {
-          if (tab === 'Network') {
+          if (tab === 'Rail Network') {
             setActiveTab('Dashboard');
           } else {
             setActiveTab(tab);

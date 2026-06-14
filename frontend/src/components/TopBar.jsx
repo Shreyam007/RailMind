@@ -3,8 +3,9 @@ import React from 'react';
 import { Bell, Settings } from 'lucide-react';
 
 export default function TopBar({ loopCount = 0, incidentCount = 0, wsStatus = 'connected', onNotificationsClick, onSettingsClick, onProfileClick, activeTab = 'Dashboard', onTabChange }) {
-  const tabs = ['Network', 'Telemetry', 'Schedules', 'Assets'];
-  const activeTopTab = ['Telemetry', 'Schedules', 'Assets'].includes(activeTab) ? activeTab : 'Network';
+  const tabs = ['Rail Network', 'Sensor Data', 'Timetable', 'Fleet'];
+  // Keep tab mapping aligned with App.jsx
+  const activeTopTab = ['Sensor Data', 'Timetable', 'Fleet'].includes(activeTab) ? activeTab : 'Rail Network';
 
   const isConnected = wsStatus === 'connected';
 
@@ -119,7 +120,7 @@ export default function TopBar({ loopCount = 0, incidentCount = 0, wsStatus = 'c
               color: isConnected ? '#00e676' : '#ff3366', 
               letterSpacing: '0.5px' 
             }}>
-              {isConnected ? 'SYS // ONLINE' : 'SYS // OFFLINE'}
+              {isConnected ? 'System Online' : 'System Offline'}
             </span>
           </div>
           
@@ -127,7 +128,7 @@ export default function TopBar({ loopCount = 0, incidentCount = 0, wsStatus = 'c
 
           {/* LOOP COUNT */}
           <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
-            <span className="palantir-mono" style={{ fontSize: '10px', fontWeight: 600, color: '#5c7080', letterSpacing: '0.5px' }}>RUNS:</span>
+            <span className="palantir-mono" style={{ fontSize: '10px', fontWeight: 600, color: '#5c7080', letterSpacing: '0.5px' }}>Cycles:</span>
             <span className="palantir-mono" style={{ fontSize: '13px', fontWeight: 700, color: '#00f0ff' }}>[{loopCount < 10 ? '0' + loopCount : loopCount}]</span>
           </div>
 
@@ -135,7 +136,7 @@ export default function TopBar({ loopCount = 0, incidentCount = 0, wsStatus = 'c
 
           {/* INCIDENTS count */}
           <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
-            <span className="palantir-mono" style={{ fontSize: '10px', fontWeight: 600, color: '#5c7080', letterSpacing: '0.5px' }}>ANOMALIES:</span>
+            <span className="palantir-mono" style={{ fontSize: '10px', fontWeight: 600, color: '#5c7080', letterSpacing: '0.5px' }}>Alerts:</span>
             <span className="palantir-mono" style={{ fontSize: '13px', fontWeight: 700, color: '#ff3366' }}>[{incidentCount < 10 ? '0' + incidentCount : incidentCount}]</span>
           </div>
         </div>

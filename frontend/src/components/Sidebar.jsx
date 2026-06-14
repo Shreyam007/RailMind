@@ -4,16 +4,16 @@ import { LayoutDashboard, Map, BellRing, ClipboardList, BarChart3, HelpCircle, F
 
 export default function Sidebar({ activeTab = 'Dashboard', setActiveTab }) {
   const menuItems = [
-    { id: 'Dashboard', name: 'DASHBOARD', icon: LayoutDashboard },
-    { id: 'Live Map', name: 'LIVE MAP', icon: Map },
-    { id: 'Incident Feed', name: 'INCIDENT FEED', icon: BellRing },
-    { id: 'Task Board', name: 'TASK BOARD', icon: ClipboardList },
-    { id: 'Analytics', name: 'ANALYTICS', icon: BarChart3 }
+    { id: 'Dashboard', name: 'Overview', icon: LayoutDashboard },
+    { id: 'Live Map', name: 'Real-Time Map', icon: Map },
+    { id: 'Incident Feed', name: 'Incident Alerts', icon: BellRing },
+    { id: 'Task Board', name: 'Tasks', icon: ClipboardList },
+    { id: 'Analytics', name: 'Reports', icon: BarChart3 }
   ];
 
   const bottomItems = [
-    { id: 'Support', name: 'SUPPORT // HELP', icon: HelpCircle },
-    { id: 'Logs', name: 'SYSTEM LOGS', icon: FileClock }
+    { id: 'Support', name: 'Help & Support', icon: HelpCircle },
+    { id: 'Logs', name: 'System Events', icon: FileClock }
   ];
 
   return (
@@ -32,7 +32,7 @@ export default function Sidebar({ activeTab = 'Dashboard', setActiveTab }) {
         {/* Header */}
         <div style={{ padding: '0 24px 24px 24px', borderBottom: '1px solid #1a2433' }}>
           <h2 className="palantir-mono" style={{ fontSize: '15px', fontWeight: 600, color: '#e2e8f0', letterSpacing: '1px' }}>SYS // ALPHA</h2>
-          <span className="palantir-mono" style={{ fontSize: '10px', color: '#00f0ff', fontWeight: 500 }}>VIGILANCE // ACTIVE</span>
+          <span className="palantir-mono" style={{ fontSize: '10px', color: '#00f0ff', fontWeight: 500 }}>Monitoring: Active</span>
         </div>
 
         {/* Navigation */}

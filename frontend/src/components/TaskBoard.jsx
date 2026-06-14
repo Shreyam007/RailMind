@@ -42,28 +42,28 @@ export default function TaskBoard({ tasks = [], onResolve, fullScreen = false })
   const getUrgencyBadge = (urgency) => {
     let color = '#ff3366'; // Red
     let bg = 'rgba(255, 51, 102, 0.08)';
-    let text = 'URGENT';
+    let text = 'Urgent';
 
     if (urgency.toLowerCase() === 'medium') {
       color = '#ffb300'; // Yellow
       bg = 'rgba(255, 179, 0, 0.08)';
-      text = 'MEDIUM';
+      text = 'Medium';
     } else if (urgency.toLowerCase() === 'resolved') {
       color = '#00e676'; // Green
       bg = 'rgba(0, 230, 118, 0.08)';
-      text = 'RESOLVED';
+      text = 'Resolved';
     } else if (urgency.toLowerCase() === 'low') {
       color = '#00f0ff'; // Blue
       bg = 'rgba(0, 240, 255, 0.08)';
-      text = 'LOW';
+      text = 'Low';
     } else if (urgency.toLowerCase() === 'high') {
       color = '#ffb300'; // Orange
       bg = 'rgba(255, 179, 0, 0.08)';
-      text = 'HIGH';
+      text = 'High';
     } else if (urgency.toLowerCase() === 'critical') {
       color = '#ff3366'; // Dark Red
       bg = 'rgba(255, 51, 102, 0.08)';
-      text = 'CRITICAL';
+      text = 'Critical';
     }
 
     return (
@@ -270,31 +270,31 @@ export default function TaskBoard({ tasks = [], onResolve, fullScreen = false })
         alignItems: 'center'
       }}>
         <h2 className="palantir-mono" style={{ fontSize: '11px', fontWeight: 600, color: '#e2e8f0', letterSpacing: '1px' }}>
-          CONTROL // DEPARTMENTAL DISPATCH
+          Tasks
         </h2>
         
         {/* Legend */}
         <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <span style={{ width: '6px', height: '6px', backgroundColor: '#ff3366' }}></span>
-            <span className="palantir-mono" style={{ fontSize: '9px', color: '#5c7080', fontWeight: 600 }}>[ URGENT ]</span>
+            <span className="palantir-mono" style={{ fontSize: '9px', color: '#5c7080', fontWeight: 600 }}>[ Urgent ]</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <span style={{ width: '6px', height: '6px', backgroundColor: '#ffb300' }}></span>
-            <span className="palantir-mono" style={{ fontSize: '9px', color: '#5c7080', fontWeight: 600 }}>[ MEDIUM ]</span>
+            <span className="palantir-mono" style={{ fontSize: '9px', color: '#5c7080', fontWeight: 600 }}>[ Medium ]</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <span style={{ width: '6px', height: '6px', backgroundColor: '#00e676' }}></span>
-            <span className="palantir-mono" style={{ fontSize: '9px', color: '#5c7080', fontWeight: 600 }}>[ RESOLVED ]</span>
+            <span className="palantir-mono" style={{ fontSize: '9px', color: '#5c7080', fontWeight: 600 }}>[ Resolved ]</span>
           </div>
         </div>
       </div>
 
       {/* Grid columns */}
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
-        {renderColumn('Maintenance // Dispatch', maintenanceTasks)}
-        {renderColumn('Operations // Dispatch', operationsTasks)}
-        {renderColumn('Station Manager // Dispatch', stationTasks)}
+        {renderColumn('Maintenance', maintenanceTasks)}
+        {renderColumn('Operations', operationsTasks)}
+        {renderColumn('Station Manager', stationTasks)}
       </div>
     </div>
   );
