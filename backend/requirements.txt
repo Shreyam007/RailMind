@@ -9,3 +9,5 @@ python-dotenv
 twilio
 httpx
 websockets
+arq
+redis

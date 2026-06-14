@@ -89,31 +89,21 @@ Previous errors from Supervisor (if any, please correct your plan):
         HumanMessage(content=user_prompt)
     ]
 
-    # Explicit tool-calling loop
-    for i in range(5): # Max 5 steps
-        res = await llm_with_tools.ainvoke(messages)
-        messages.append(res)
+    from langgraph.prebuilt import create_react_agent
 
-        if not res.tool_calls:
-            break
+    agent = create_react_agent(llm, tools)
 
-        for tool_call in res.tool_calls:
-            tool_name = tool_call["name"]
-            tool_args = tool_call["args"]
-            try:
-                tool_func = tool_map[tool_name]
-                tool_result = await tool_func.ainvoke(tool_args)
-                messages.append(ToolMessage(tool_call_id=tool_call["id"], content=str(tool_result)))
-            except Exception as e:
-                messages.append(ToolMessage(tool_call_id=tool_call["id"], content=f"Error: {str(e)}"))
-
-    # Now that tool usage is done, force structured output
-    structured_llm = llm.with_structured_output(MitigationPlan)
     try:
-        final_plan: MitigationPlan = await structured_llm.ainvoke(messages)
+        # Run autonomous tool-calling loop
+        result = await agent.ainvoke({"messages": messages})
+        final_messages = result["messages"]
+
+        # Now that tool usage is done, force structured output
+        structured_llm = llm.with_structured_output(MitigationPlan)
+        final_plan: MitigationPlan = await structured_llm.ainvoke(final_messages)
         return final_plan.dict()
     except Exception as e:
-        print(f"[RAILMIND] LLM failed to produce structured output: {e}")
+        print(f"[RAILMIND] AI Reasoning or structured output failed: {e}")
         return {
             "incident_title": f"{train_number} {train_name} delayed {delay_minutes}min at {current_station}",
             "situation_summary": f"Train running {delay_minutes} minutes behind schedule due to operational constraints at {current_station}.",

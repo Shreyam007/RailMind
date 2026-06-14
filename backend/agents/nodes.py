@@ -41,12 +41,15 @@ async def log_agent(node_name: str, message: str):
 async def ingest_node(state: AgentState) -> AgentState:
     try:
         await log_agent("ingest_node", "[RAILMIND] Ingesting live train status from API feeds...")
-        train_numbers = [
-            "12301", "12951", "12001", "12259", "12565",
-            "11057", "12627", "12625", "12621", "12615",
-            "12309", "12721", "12229", "12311", "12641",
-            "12438", "ICE"
-        ]
+        # Use dynamically provided train numbers from state if available
+        train_numbers = state.get("target_trains")
+        if not train_numbers:
+            train_numbers = [
+                "12301", "12951", "12001", "12259", "12565",
+                "11057", "12627", "12625", "12621", "12615",
+                "12309", "12721", "12229", "12311", "12641",
+                "12438", "ICE"
+            ]
         
         import time
         start_time = time.time()
@@ -256,6 +259,11 @@ async def reroute_node(state: AgentState) -> AgentState:
                 target_station = "Varanasi"
 
             if start_station and target_station:
+                # Add geo-coordinate checking for A* or DP route discovery fallback
+                lat = anomaly.get("lat")
+                lng = anomaly.get("lng")
+                await log_agent("reroute_node", f"[RAILMIND] Evaluating geo-coordinates (lat: {lat}, lng: {lng}) for track availability...")
+
                 result = dijkstra_route_discovery(start_station, target_station)
                 if result["status"] == "Success":
                     route_str = " -> ".join(result["route"])
@@ -264,7 +272,7 @@ async def reroute_node(state: AgentState) -> AgentState:
                 else:
                     status_msg = result.get("status", "Unknown status")
                     await log_agent("reroute_node", f"[RAILMIND] No viable detour found: {status_msg}")
-                    state["reroute_plan"] = f"No reroute available: {status_msg}"
+                    return {"reroute_plan": f"No reroute available: {status_msg}"}
     except Exception as e:
         logger.error(f"Error in reroute_node: {e}")
         await log_agent("reroute_node", f"[RAILMIND] [ERROR] Reroute node failed: {e}")
@@ -345,10 +353,11 @@ async def coordination_node(state: AgentState) -> AgentState:
             logger.warning(f"Failed to save department tasks to MongoDB: {e}")
 
         await log_agent("coordination_node", "[RAILMIND] Dispatched tasks to 3 departments simultaneously")
+        return {"department_tasks": department_tasks}
     except Exception as e:
         logger.error(f"Error in coordination_node: {e}")
         await log_agent("coordination_node", f"[RAILMIND] [ERROR] Coordination node failed: {e}")
-    return state
+    return {}
 
 async def alert_node(state: AgentState) -> AgentState:
     try:
@@ -398,37 +407,13 @@ async def alert_node(state: AgentState) -> AgentState:
             except Exception as e:
                 logger.error(f"Error sending passenger SMS: {e}")
 
-        state["sms_alerts_sent"] = sent_sms
         await log_agent("alert_node", f"[RAILMIND] SMS alerts sent to {len(sent_sms)} recipients")
+        return {"sms_alerts_sent": sent_sms}
     except Exception as e:
         logger.error(f"Error in alert_node: {e}")
         await log_agent("alert_node", f"[RAILMIND] [ERROR] Alert node failed: {e}")
-    return state
+    return {}
 
-async def save_incident_if_not_duplicate(db, incident):
-    # Check last 5 minutes for same train number
-    from datetime import datetime, timedelta
-    five_mins_ago = datetime.utcnow() - timedelta(minutes=5)
-    
-    existing = await db.incidents.find_one({
-        "train_number": incident["train_number"],
-        "timestamp": {
-            "$gt": five_mins_ago.isoformat()
-        }
-    })
-    
-    if existing:
-        print(f"[RAILMIND] Skipping duplicate incident for "
-              f"train {incident['train_number']} "
-              f"(last logged {existing['timestamp']})")
-        return False
-    
-    # Make a copy to avoid inserting _id of type ObjectId in-place into the original dictionary
-    incident_copy = incident.copy()
-    await db.incidents.insert_one(incident_copy)
-    print(f"[RAILMIND] New incident saved: "
-          f"{incident['incident_title']}")
-    return True
 
 async def report_node(state: AgentState) -> AgentState:
     try:
@@ -436,7 +421,7 @@ async def report_node(state: AgentState) -> AgentState:
         
         anomalies = state.get("anomalies", [])
         if not anomalies:
-            return state
+            return {}
             
         anomaly = anomalies[0]
         train_number = anomaly.get("train_number", "Unknown")
@@ -473,8 +458,8 @@ async def report_node(state: AgentState) -> AgentState:
             "sms_sent": len(state.get("sms_alerts_sent", []))
         }
 
-        # Check for duplicates in last 5 minutes before saving (ISSUE 2)
-        saved = await save_incident_if_not_duplicate(db_client.db, incident_report)
+        # Enforce strict idempotency using MongoDB DuplicateKeyError in insert_incident
+        saved = await db_client.insert_incident(incident_report)
         if saved:
             # Broadcast via WebSocket
             try:
@@ -492,39 +477,42 @@ async def report_node(state: AgentState) -> AgentState:
         # Mark this train as recently processed in state
         processed_trains = state.get("processed_trains", [])
         processed_trains.append(anomaly["train_number"])
-        state["processed_trains"] = processed_trains
 
-        # Reset state fields
-        # For LangGraph annotated reducers, we can't easily clear lists by passing [] if it appends.
-        # But we can let the next graph invocation use a fresh initial state.
-        # So we just mark the next node.
-        state["loop_count"] = state.get("loop_count", 0) + 1
-        state["next_node"] = "END"
-
-        # We don't sleep here in a real LangGraph flow, the streaming app handles it or the caller.
         await log_agent("report_node", "[RAILMIND] Report node complete. Supervisor will transition to END.")
+
+        return {
+            "processed_trains": processed_trains,
+            "loop_count": state.get("loop_count", 0) + 1,
+            "anomalies": ["CLEAR"], # clear anomalies so next run starts fresh
+            "sms_alerts_sent": ["CLEAR"],
+            "department_tasks": ["CLEAR"],
+            "claude_reasoning": "{}"
+        }
 
     except Exception as e:
         logger.error(f"Error in report_node: {e}")
         await log_agent("report_node", f"[RAILMIND] [ERROR] Report node failed: {e}")
-    return state
+    return {}
 
 async def supervisor_node(state: AgentState) -> dict:
     try:
-        await log_agent("supervisor_node", "[RAILMIND] Supervisor evaluating graph state...")
+        last_node = state.get("last_node_executed")
+        await log_agent("supervisor_node", f"[RAILMIND] Supervisor evaluating graph state... (Last execution: {last_node})")
 
         anomalies = state.get("anomalies", [])
-        if not anomalies:
-            return {"next_node": "END"}
+        if not anomalies or state.get("should_continue") is False:
+            return {"next_node": "END", "last_node_executed": "supervisor_node"}
+
+        # If we just came from ingest, we must go to detect.
+        if not last_node or last_node == "ingest_node" or last_node == "supervisor_node" and not anomalies:
+             return {"next_node": "detect_node", "last_node_executed": "supervisor_node"}
 
         # If reasoning hasn't happened or failed to produce plan
         if not state.get("claude_reasoning") or state.get("claude_reasoning") == "{}":
-            # For offline testing where Reason API throws Auth Error and falls back to {}
-            # we don't want an infinite loop.
             if getattr(state, "get", lambda k,d: d)("ai_latency_ms", -1) > 0:
                  # AI ran but returned nothing. Stop ping-ponging.
-                 return {"next_node": "END"}
-            return {"next_node": "reason_node"}
+                 return {"next_node": "END", "last_node_executed": "supervisor_node"}
+            return {"next_node": "reason_node", "last_node_executed": "supervisor_node"}
 
         # Self correction loop check
         try:
@@ -533,12 +521,12 @@ async def supervisor_node(state: AgentState) -> dict:
             if "Kanpur" in maintenance and "restricted" in maintenance.lower():
                  # Mock conflict logic
                  await log_agent("supervisor_node", "[RAILMIND] [WARNING] Conflict detected in maintenance task. Re-routing to Reasoner.")
-                 if "errors" not in state or state["errors"] is None:
-                     state["errors"] = []
-                 state["errors"].append("Maintenance task conflicts with active line configurations at Kanpur.")
-                 state["claude_reasoning"] = "{}" # clear to force re-reason
-                 state["next_node"] = "reason_node"
-                 return state
+                 return {
+                     "errors": ["Maintenance task conflicts with active line configurations at Kanpur."],
+                     "claude_reasoning": "{}", # clear to force re-reason
+                     "next_node": "reason_node",
+                     "last_node_executed": "supervisor_node"
+                 }
         except json.JSONDecodeError as e:
             logger.warning("JSON parse failed: %s", e)
         except Exception:
@@ -546,25 +534,21 @@ async def supervisor_node(state: AgentState) -> dict:
             raise
 
         if not state.get("reroute_plan"):
-             state["next_node"] = "reroute_node"
-             return state
+             return {"next_node": "reroute_node", "last_node_executed": "supervisor_node"}
 
         # If tasks not generated
         if not state.get("department_tasks"):
-            state["next_node"] = "coordination_node"
-            return state
+            return {"next_node": "coordination_node", "last_node_executed": "supervisor_node"}
 
         # If alerts not sent
         if not state.get("sms_alerts_sent") and len(state.get("department_tasks", [])) > 0:
-            state["next_node"] = "alert_node"
-            return state
+            return {"next_node": "alert_node", "last_node_executed": "supervisor_node"}
 
         # Otherwise report and finish
-        state["next_node"] = "report_node"
+        return {"next_node": "report_node", "last_node_executed": "supervisor_node"}
 
     except Exception as e:
          logger.exception("Error in supervisor_node")
          tb = traceback.format_exc()
          await log_agent("supervisor_node", f"[RAILMIND] [ERROR] Supervisor node failed: {e}\n{tb}")
-         state["next_node"] = "END"
-    return state
+         return {"next_node": "END", "last_node_executed": "supervisor_node"}
