@@ -1,1 +1,795 @@
-{"incidents": [], "department_tasks": []}
+{
+  "incidents": [
+    {
+      "incident_id": "742ca2bb-e672-4fbb-8287-a9f789e4dc61",
+      "timestamp": "2026-06-13T07:07:49.356288",
+      "train_number": "12301",
+      "train_name": "Howrah Rajdhani Express",
+      "incident_title": "ANOMALY: Operational delay for Train 12301 near Kanpur Central",
+      "current_station": "Kanpur Central",
+      "delay_minutes": 45,
+      "severity": "medium",
+      "situation_summary": "Train 12301 (Howrah Rajdhani Express) is delayed by 45 minutes near Kanpur Central due to line congestion and traffic slot scheduling constraints.",
+      "reroute_plan": "Dijkstra Detour via secondary corridor line to bypass slot congestion at Kanpur Central",
+      "maintenance_task": "Perform routine check on line switches and signaling points at Kanpur Central junction yards.",
+      "operations_task": "Coordinate slot re-allocation with control room. Permit express overtake if possible.",
+      "station_manager_task": "Announce delay of 45 minutes for Train 12301 Howrah Rajdhani Express arriving on platform.",
+      "passenger_sms": "[RailMind Alert] Train 12301 is running late by 45 minutes near Kanpur Central.",
+      "resolution_status": "pending",
+      "departments_notified": [
+        "maintenance",
+        "operations",
+        "station_manager"
+      ],
+      "sms_sent": 14,
+      "_id": "742ca2bb-e672-4fbb-8287-a9f789e4dc61"
+    },
+    {
+      "incident_id": "189502ef-e6f8-4326-899d-447a3efd19d3",
+      "timestamp": "2026-06-13T07:08:56.956687",
+      "train_number": "12951",
+      "train_name": "Mumbai Rajdhani Express",
+      "incident_title": "ANOMALY: Operational delay for Train 12951 near Bhopal",
+      "current_station": "Bhopal",
+      "delay_minutes": 22,
+      "severity": "low",
+      "situation_summary": "Train 12951 (Mumbai Rajdhani Express) is delayed by 22 minutes near Bhopal due to line congestion and traffic slot scheduling constraints.",
+      "reroute_plan": "Dijkstra Detour via secondary corridor line to bypass slot congestion at Bhopal",
+      "maintenance_task": "Perform routine check on line switches and signaling points at Bhopal junction yards.",
+      "operations_task": "Coordinate slot re-allocation with control room. Permit express overtake if possible.",
+      "station_manager_task": "Announce delay of 22 minutes for Train 12951 Mumbai Rajdhani Express arriving on platform.",
+      "passenger_sms": "[RailMind Alert] Train 12951 is running late by 22 minutes near Bhopal.",
+      "resolution_status": "pending",
+      "departments_notified": [
+        "maintenance",
+        "operations",
+        "station_manager"
+      ],
+      "sms_sent": 14,
+      "_id": "189502ef-e6f8-4326-899d-447a3efd19d3"
+    },
+    {
+      "incident_id": "090833a5-783c-46c3-bde8-1e09fef7468a",
+      "timestamp": "2026-06-13T07:10:04.607276",
+      "train_number": "12259",
+      "train_name": "Sealdah Duronto Express",
+      "incident_title": "ANOMALY: Operational delay for Train 12259 near Bardhaman",
+      "current_station": "Bardhaman",
+      "delay_minutes": 67,
+      "severity": "high",
+      "situation_summary": "Train 12259 (Sealdah Duronto Express) is delayed by 67 minutes near Bardhaman due to line congestion and traffic slot scheduling constraints.",
+      "reroute_plan": "Dijkstra Detour via secondary corridor line to bypass slot congestion at Bardhaman",
+      "maintenance_task": "Perform routine check on line switches and signaling points at Bardhaman junction yards.",
+      "operations_task": "Coordinate slot re-allocation with control room. Permit express overtake if possible.",
+      "station_manager_task": "Announce delay of 67 minutes for Train 12259 Sealdah Duronto Express arriving on platform.",
+      "passenger_sms": "[RailMind Alert] Train 12259 is running late by 67 minutes near Bardhaman.",
+      "resolution_status": "pending",
+      "departments_notified": [
+        "maintenance",
+        "operations",
+        "station_manager"
+      ],
+      "sms_sent": 14,
+      "_id": "090833a5-783c-46c3-bde8-1e09fef7468a"
+    },
+    {
+      "incident_id": "f7d2baa5-92fd-41a2-bc1b-3991bb0e8041",
+      "timestamp": "2026-06-13T07:11:12.401503",
+      "train_number": "12565",
+      "train_name": "Bihar Sampark Kranti Express",
+      "incident_title": "ANOMALY: Operational delay for Train 12565 near Gorakhpur",
+      "current_station": "Gorakhpur",
+      "delay_minutes": 34,
+      "severity": "medium",
+      "situation_summary": "Train 12565 (Bihar Sampark Kranti Express) is delayed by 34 minutes near Gorakhpur due to line congestion and traffic slot scheduling constraints.",
+      "reroute_plan": "Dijkstra Detour via secondary corridor line to bypass slot congestion at Gorakhpur",
+      "maintenance_task": "Perform routine check on line switches and signaling points at Gorakhpur junction yards.",
+      "operations_task": "Coordinate slot re-allocation with control room. Permit express overtake if possible.",
+      "station_manager_task": "Announce delay of 34 minutes for Train 12565 Bihar Sampark Kranti Express arriving on platform.",
+      "passenger_sms": "[RailMind Alert] Train 12565 is running late by 34 minutes near Gorakhpur.",
+      "resolution_status": "pending",
+      "departments_notified": [
+        "maintenance",
+        "operations",
+        "station_manager"
+      ],
+      "sms_sent": 14,
+      "_id": "f7d2baa5-92fd-41a2-bc1b-3991bb0e8041"
+    },
+    {
+      "incident_id": "a36749b7-6e38-49f0-af62-32a61bb76ba1",
+      "timestamp": "2026-06-13T07:12:20.472863",
+      "train_number": "12627",
+      "train_name": "Karnataka Express",
+      "incident_title": "ANOMALY: Operational delay for Train 12627 near Secunderabad",
+      "current_station": "Secunderabad",
+      "delay_minutes": 51,
+      "severity": "medium",
+      "situation_summary": "Train 12627 (Karnataka Express) is delayed by 51 minutes near Secunderabad due to line congestion and traffic slot scheduling constraints.",
+      "reroute_plan": "Dijkstra Detour via secondary corridor line to bypass slot congestion at Secunderabad",
+      "maintenance_task": "Perform routine check on line switches and signaling points at Secunderabad junction yards.",
+      "operations_task": "Coordinate slot re-allocation with control room. Permit express overtake if possible.",
+      "station_manager_task": "Announce delay of 51 minutes for Train 12627 Karnataka Express arriving on platform.",
+      "passenger_sms": "[RailMind Alert] Train 12627 is running late by 51 minutes near Secunderabad.",
+      "resolution_status": "pending",
+      "departments_notified": [
+        "maintenance",
+        "operations",
+        "station_manager"
+      ],
+      "sms_sent": 14,
+      "_id": "a36749b7-6e38-49f0-af62-32a61bb76ba1"
+    },
+    {
+      "incident_id": "1c0bab1e-8c68-4b5f-af7e-6ab6163bd470",
+      "timestamp": "2026-06-13T07:15:41.898146",
+      "train_number": "12301",
+      "train_name": "Howrah Rajdhani Express",
+      "incident_title": "ANOMALY: Operational delay for Train 12301 near Kanpur Central",
+      "current_station": "Kanpur Central",
+      "delay_minutes": 45,
+      "severity": "medium",
+      "situation_summary": "Train 12301 (Howrah Rajdhani Express) is delayed by 45 minutes near Kanpur Central due to line congestion and traffic slot scheduling constraints.",
+      "reroute_plan": "Dijkstra Detour via secondary corridor line to bypass slot congestion at Kanpur Central",
+      "maintenance_task": "Perform routine check on line switches and signaling points at Kanpur Central junction yards.",
+      "operations_task": "Coordinate slot re-allocation with control room. Permit express overtake if possible.",
+      "station_manager_task": "Announce delay of 45 minutes for Train 12301 Howrah Rajdhani Express arriving on platform.",
+      "passenger_sms": "[RailMind Alert] Train 12301 is running late by 45 minutes near Kanpur Central.",
+      "resolution_status": "pending",
+      "departments_notified": [
+        "maintenance",
+        "operations",
+        "station_manager"
+      ],
+      "sms_sent": 14,
+      "_id": "1c0bab1e-8c68-4b5f-af7e-6ab6163bd470"
+    },
+    {
+      "incident_id": "33f0df58-47fb-46ff-8516-fa683e20b5d8",
+      "timestamp": "2026-06-13T07:45:27.561134",
+      "train_number": "12301",
+      "train_name": "Howrah Rajdhani Express",
+      "incident_title": "ANOMALY: Operational delay for Train 12301 near Kanpur Central",
+      "current_station": "Kanpur Central",
+      "delay_minutes": 45,
+      "severity": "medium",
+      "situation_summary": "Train 12301 (Howrah Rajdhani Express) is delayed by 45 minutes near Kanpur Central due to line congestion and traffic slot scheduling constraints.",
+      "reroute_plan": "Dijkstra Detour via secondary corridor line to bypass slot congestion at Kanpur Central",
+      "maintenance_task": "Perform routine check on line switches and signaling points at Kanpur Central junction yards.",
+      "operations_task": "Coordinate slot re-allocation with control room. Permit express overtake if possible.",
+      "station_manager_task": "Announce delay of 45 minutes for Train 12301 Howrah Rajdhani Express arriving on platform.",
+      "passenger_sms": "[RailMind Alert] Train 12301 is running late by 45 minutes near Kanpur Central.",
+      "resolution_status": "pending",
+      "departments_notified": [
+        "maintenance",
+        "operations",
+        "station_manager"
+      ],
+      "sms_sent": 14,
+      "detour_route": [],
+      "_id": "33f0df58-47fb-46ff-8516-fa683e20b5d8"
+    },
+    {
+      "incident_id": "4fa86453-86ba-43e6-b23c-bd4a616586a1",
+      "timestamp": "2026-06-13T07:45:46.559027",
+      "train_number": "12259",
+      "train_name": "Sealdah Duronto Express",
+      "incident_title": "CRITICAL: Signal Grid Failure near Varanasi affecting Train 12259",
+      "current_station": "Varanasi",
+      "delay_minutes": 60,
+      "severity": "critical",
+      "situation_summary": "Train 12259 (Sealdah Duronto Express) is halted at Varanasi due to a track signaling relay interlock failure. Interlocking points are jammed in default closed state.",
+      "reroute_plan": "Dijkstra Detour via Varanasi Outer Loop -> East Bypass -> Join mainline (bypass Varanasi yards)",
+      "maintenance_task": "Deploy signal maintenance technicians to Varanasi junction signal tower. Manually override relay points and inspect electronic interlock card (EIL-4).",
+      "operations_task": "Halt consecutive services. Recalculate route for 12259 via bypass detour rail corridor to avoid Varanasi platform lines.",
+      "station_manager_task": "Broadcast on PA system: Train 12259 Sealdah Duronto Express is delayed at Varanasi due to technical signal faults. Platform boards updated.",
+      "passenger_sms": "[RailMind Alert] Train 12259 delayed due to signal failure near Varanasi. Alternate routing in progress.",
+      "resolution_status": "pending",
+      "departments_notified": [
+        "maintenance",
+        "operations",
+        "station_manager"
+      ],
+      "sms_sent": 14,
+      "detour_route": [],
+      "_id": "4fa86453-86ba-43e6-b23c-bd4a616586a1"
+    },
+    {
+      "incident_id": "e85ce1b5-c1b1-4cf4-bd92-6c29cb196ecd",
+      "timestamp": "2026-06-14T10:24:06.842571",
+      "train_number": "12301",
+      "train_name": "Howrah Rajdhani Express",
+      "incident_title": "ANOMALY: Operational delay for Train 12301 near Kanpur Central",
+      "current_station": "Kanpur Central",
+      "delay_minutes": 43,
+      "severity": "medium",
+      "situation_summary": "Train 12301 (Howrah Rajdhani Express) is delayed by 43 minutes near Kanpur Central due to line congestion and traffic slot scheduling constraints.",
+      "reroute_plan": "Dijkstra Detour via secondary corridor line to bypass slot congestion at Kanpur Central",
+      "maintenance_task": "Perform routine check on line switches and signaling points at Kanpur Central junction yards.",
+      "operations_task": "Coordinate slot re-allocation with control room. Permit express overtake if possible.",
+      "station_manager_task": "Announce delay of 43 minutes for Train 12301 Howrah Rajdhani Express arriving on platform.",
+      "passenger_sms": "[RailMind Alert] Train 12301 is running late by 43 minutes near Kanpur Central.",
+      "resolution_status": "pending",
+      "departments_notified": [
+        "maintenance",
+        "operations",
+        "station_manager"
+      ],
+      "sms_sent": 14,
+      "detour_route": [],
+      "confidence_score": 92.9,
+      "reasoning_steps": [
+        "[1/5] TELEMETRY_INGESTION: Received live telemetry for Train 12301 at Kanpur Central",
+        "[2/5] ANOMALY_DETECTION: DELAY anomaly classified \u2014 severity=medium, delay=43m",
+        "[3/5] GRAPH_REASONING: Running multi-tool LangGraph supervisor chain...",
+        "[4/5] ROUTE_OPTIMIZATION: Dijkstra pathfinding completed. Bypass route validated.",
+        "[5/5] DECISION_COMMIT: Mitigation plan accepted with 92.9% confidence."
+      ],
+      "_id": "e85ce1b5-c1b1-4cf4-bd92-6c29cb196ecd"
+    },
+    {
+      "incident_id": "f74e9607-ccd0-4529-a4d9-18b66903eb7c",
+      "timestamp": "2026-06-14T10:30:14.263564",
+      "train_number": "12301",
+      "train_name": "Howrah Rajdhani Express",
+      "incident_title": "ANOMALY: Operational delay for Train 12301 near Kanpur Central",
+      "current_station": "Kanpur Central",
+      "delay_minutes": 46,
+      "severity": "medium",
+      "situation_summary": "Train 12301 (Howrah Rajdhani Express) is delayed by 46 minutes near Kanpur Central due to line congestion and traffic slot scheduling constraints.",
+      "reroute_plan": "Dijkstra Detour via secondary corridor line to bypass slot congestion at Kanpur Central",
+      "maintenance_task": "Perform routine check on line switches and signaling points at Kanpur Central junction yards.",
+      "operations_task": "Coordinate slot re-allocation with control room. Permit express overtake if possible.",
+      "station_manager_task": "Announce delay of 46 minutes for Train 12301 Howrah Rajdhani Express arriving on platform.",
+      "passenger_sms": "[RailMind Alert] Train 12301 is running late by 46 minutes near Kanpur Central.",
+      "resolution_status": "pending",
+      "departments_notified": [
+        "maintenance",
+        "operations",
+        "station_manager"
+      ],
+      "sms_sent": 14,
+      "detour_route": [],
+      "confidence_score": 92.9,
+      "reasoning_steps": [
+        "[1/5] TELEMETRY_INGESTION: Received live telemetry for Train 12301 at Kanpur Central",
+        "[2/5] ANOMALY_DETECTION: DELAY anomaly classified \u2014 severity=medium, delay=46m",
+        "[3/5] GRAPH_REASONING: Running multi-tool LangGraph supervisor chain...",
+        "[4/5] ROUTE_OPTIMIZATION: Dijkstra pathfinding completed. Bypass route validated.",
+        "[5/5] DECISION_COMMIT: Mitigation plan accepted with 92.9% confidence."
+      ],
+      "_id": "f74e9607-ccd0-4529-a4d9-18b66903eb7c"
+    },
+    {
+      "incident_id": "7c256276-10c3-4fd7-9014-f19b3ba051e8",
+      "loop_created": 0,
+      "timestamp": "2026-06-14T10:40:50.955823",
+      "train_number": "12301",
+      "train_name": "Howrah Rajdhani Express",
+      "incident_title": "12301 Howrah Rajdhani Express delayed 46min at Kanpur Central",
+      "current_station": "Kanpur Central",
+      "delay_minutes": 46,
+      "severity": "medium",
+      "situation_summary": "Train 12301 (Howrah Rajdhani Express) is experiencing a delay at Kanpur Central with 46 minutes delay.",
+      "reroute_plan": "Dijkstra detour bypass: CNB -> ALD -> BSB -> PNBE -> JSME -> DHN -> BWN -> HWH (ETA 880 mins)",
+      "maintenance_task": "Inspect signaling hardware.",
+      "operations_task": "Operational check on Train 12301.",
+      "station_manager_task": "Broadcast delay announcements.",
+      "passenger_sms": "Check platform screens for status updates.",
+      "resolution_status": "pending",
+      "departments_notified": [
+        "maintenance",
+        "operations",
+        "station_manager"
+      ],
+      "sms_sent": 8,
+      "detour_route": [
+        "CNB",
+        "ALD",
+        "BSB",
+        "PNBE",
+        "JSME",
+        "DHN",
+        "BWN",
+        "HWH"
+      ],
+      "confidence_score": 91,
+      "reasoning_steps": [
+        "PERCEIVE: Train 12301 (Howrah Rajdhani Express) is experiencing a delay at Kanpur Central with 46 minutes delay.",
+        "ASSESS: Corridor = Kanpur Central Section, Cascade risk = False",
+        "DECIDE: Autonomously handle delay at Kanpur Central for Train 12301.",
+        "ACTION SLOTS: Dispatched 1 tasks to departments"
+      ],
+      "_id": "7c256276-10c3-4fd7-9014-f19b3ba051e8"
+    },
+    {
+      "incident_id": "9db79c21-547c-46a8-94b9-afa20167b9c4",
+      "loop_created": 0,
+      "timestamp": "2026-06-14T10:51:19.053991",
+      "train_number": "12301",
+      "train_name": "Howrah Rajdhani Express",
+      "incident_title": "NETWORK EVENT: Delhi-Howrah Corridor Disruption",
+      "current_station": "Kanpur Central",
+      "delay_minutes": 44,
+      "severity": "medium",
+      "situation_summary": "Network stress on 2 corridors. Not cascade yet. Individual responses needed.",
+      "reroute_plan": "Dijkstra detour bypass: CNB -> ALD -> BSB -> PNBE -> JSME -> DHN -> BWN -> HWH (ETA 880 mins)",
+      "maintenance_task": "Platform inspection CNB",
+      "operations_task": "Reroute train 12301 via Allahabad: Bypass blocked section",
+      "station_manager_task": "Broadcast delay announcements.",
+      "passenger_sms": "Check platform screens for status updates.",
+      "resolution_status": "pending",
+      "departments_notified": [
+        "maintenance",
+        "operations",
+        "station_manager"
+      ],
+      "sms_sent": 4,
+      "detour_route": [
+        "CNB",
+        "ALD",
+        "BSB",
+        "PNBE",
+        "JSME",
+        "DHN",
+        "BWN",
+        "HWH"
+      ],
+      "confidence_score": 94,
+      "reasoning_steps": [
+        "PERCEIVE: Network stress on 2 corridors. Not cascade yet. Individual responses needed.",
+        "ASSESS: Corridor = Delhi-Howrah Corridor, Cascade risk = False",
+        "DECIDE: Rerouting 12301 via Allahabad. Holding 12625 at Nagpur 8 mins.",
+        "ACTION SLOTS: Dispatched 3 tasks to departments"
+      ],
+      "_id": "9db79c21-547c-46a8-94b9-afa20167b9c4"
+    }
+  ],
+  "department_tasks": [
+    {
+      "incident_id": "99b066e5-7e3f-47b2-a1a2-5278804b3133",
+      "department": "maintenance",
+      "task_description": "Perform routine check on line switches and signaling points at Kanpur Central junction yards.",
+      "urgency": "high",
+      "action_required": "Dispatch repair team immediately",
+      "status": "pending",
+      "timestamp": "2026-06-13 07:07:14.437953",
+      "_id": "6a2d01a2900ef669a8c5ad95"
+    },
+    {
+      "incident_id": "99b066e5-7e3f-47b2-a1a2-5278804b3133",
+      "department": "operations",
+      "task_description": "Coordinate slot re-allocation with control room. Permit express overtake if possible.",
+      "urgency": "medium",
+      "action_required": "Execute rerouting plan",
+      "status": "pending",
+      "timestamp": "2026-06-13 07:07:14.437953",
+      "_id": "6a2d01a2900ef669a8c5ad96"
+    },
+    {
+      "incident_id": "99b066e5-7e3f-47b2-a1a2-5278804b3133",
+      "department": "station_manager",
+      "task_description": "Announce delay of 45 minutes for Train 12301 Howrah Rajdhani Express arriving on platform.",
+      "urgency": "high",
+      "action_required": "Make passenger announcement + update platform boards",
+      "status": "pending",
+      "timestamp": "2026-06-13 07:07:14.437953",
+      "_id": "6a2d01a2900ef669a8c5ad97"
+    },
+    {
+      "incident_id": "8486dd66-8954-4cbb-8107-02e5ad26f1b7",
+      "department": "maintenance",
+      "task_description": "Perform routine check on line switches and signaling points at Bhopal junction yards.",
+      "urgency": "high",
+      "action_required": "Dispatch repair team immediately",
+      "status": "pending",
+      "timestamp": "2026-06-13 07:08:54.195785"
+    },
+    {
+      "incident_id": "8486dd66-8954-4cbb-8107-02e5ad26f1b7",
+      "department": "operations",
+      "task_description": "Coordinate slot re-allocation with control room. Permit express overtake if possible.",
+      "urgency": "medium",
+      "action_required": "Execute rerouting plan",
+      "status": "pending",
+      "timestamp": "2026-06-13 07:08:54.195785"
+    },
+    {
+      "incident_id": "8486dd66-8954-4cbb-8107-02e5ad26f1b7",
+      "department": "station_manager",
+      "task_description": "Announce delay of 22 minutes for Train 12951 Mumbai Rajdhani Express arriving on platform.",
+      "urgency": "high",
+      "action_required": "Make passenger announcement + update platform boards",
+      "status": "pending",
+      "timestamp": "2026-06-13 07:08:54.195785"
+    },
+    {
+      "incident_id": "45716a35-bcfc-4568-a56d-0a6395559066",
+      "department": "maintenance",
+      "task_description": "Perform routine check on line switches and signaling points at Bardhaman junction yards.",
+      "urgency": "high",
+      "action_required": "Dispatch repair team immediately",
+      "status": "pending",
+      "timestamp": "2026-06-13 07:10:01.228939"
+    },
+    {
+      "incident_id": "45716a35-bcfc-4568-a56d-0a6395559066",
+      "department": "operations",
+      "task_description": "Coordinate slot re-allocation with control room. Permit express overtake if possible.",
+      "urgency": "medium",
+      "action_required": "Execute rerouting plan",
+      "status": "pending",
+      "timestamp": "2026-06-13 07:10:01.228939"
+    },
+    {
+      "incident_id": "45716a35-bcfc-4568-a56d-0a6395559066",
+      "department": "station_manager",
+      "task_description": "Announce delay of 67 minutes for Train 12259 Sealdah Duronto Express arriving on platform.",
+      "urgency": "high",
+      "action_required": "Make passenger announcement + update platform boards",
+      "status": "pending",
+      "timestamp": "2026-06-13 07:10:01.228939"
+    },
+    {
+      "incident_id": "ea4f0ab1-4a65-4094-87bd-a3f699a46021",
+      "department": "maintenance",
+      "task_description": "Perform routine check on line switches and signaling points at Gorakhpur junction yards.",
+      "urgency": "high",
+      "action_required": "Dispatch repair team immediately",
+      "status": "pending",
+      "timestamp": "2026-06-13 07:11:09.680900"
+    },
+    {
+      "incident_id": "ea4f0ab1-4a65-4094-87bd-a3f699a46021",
+      "department": "operations",
+      "task_description": "Coordinate slot re-allocation with control room. Permit express overtake if possible.",
+      "urgency": "medium",
+      "action_required": "Execute rerouting plan",
+      "status": "pending",
+      "timestamp": "2026-06-13 07:11:09.680900"
+    },
+    {
+      "incident_id": "ea4f0ab1-4a65-4094-87bd-a3f699a46021",
+      "department": "station_manager",
+      "task_description": "Announce delay of 34 minutes for Train 12565 Bihar Sampark Kranti Express arriving on platform.",
+      "urgency": "high",
+      "action_required": "Make passenger announcement + update platform boards",
+      "status": "pending",
+      "timestamp": "2026-06-13 07:11:09.680900"
+    },
+    {
+      "incident_id": "45135c21-8a60-48d6-b08c-a7b6b428b1f2",
+      "department": "maintenance",
+      "task_description": "Perform routine check on line switches and signaling points at Secunderabad junction yards.",
+      "urgency": "high",
+      "action_required": "Dispatch repair team immediately",
+      "status": "pending",
+      "timestamp": "2026-06-13 07:12:16.400954"
+    },
+    {
+      "incident_id": "45135c21-8a60-48d6-b08c-a7b6b428b1f2",
+      "department": "operations",
+      "task_description": "Coordinate slot re-allocation with control room. Permit express overtake if possible.",
+      "urgency": "medium",
+      "action_required": "Execute rerouting plan",
+      "status": "pending",
+      "timestamp": "2026-06-13 07:12:16.400954"
+    },
+    {
+      "incident_id": "45135c21-8a60-48d6-b08c-a7b6b428b1f2",
+      "department": "station_manager",
+      "task_description": "Announce delay of 51 minutes for Train 12627 Karnataka Express arriving on platform.",
+      "urgency": "high",
+      "action_required": "Make passenger announcement + update platform boards",
+      "status": "pending",
+      "timestamp": "2026-06-13 07:12:16.400954"
+    },
+    {
+      "incident_id": "f912c54b-3eee-4d5b-b04e-18d2f6c2304c",
+      "department": "maintenance",
+      "task_description": "Perform routine check on line switches and signaling points at Kanpur Central junction yards.",
+      "urgency": "high",
+      "action_required": "Dispatch repair team immediately",
+      "status": "pending",
+      "timestamp": "2026-06-13 07:15:11.390401",
+      "_id": "6a2d037f16200df95842e23e"
+    },
+    {
+      "incident_id": "f912c54b-3eee-4d5b-b04e-18d2f6c2304c",
+      "department": "operations",
+      "task_description": "Coordinate slot re-allocation with control room. Permit express overtake if possible.",
+      "urgency": "medium",
+      "action_required": "Execute rerouting plan",
+      "status": "pending",
+      "timestamp": "2026-06-13 07:15:11.390401",
+      "_id": "6a2d037f16200df95842e23f"
+    },
+    {
+      "incident_id": "f912c54b-3eee-4d5b-b04e-18d2f6c2304c",
+      "department": "station_manager",
+      "task_description": "Announce delay of 45 minutes for Train 12301 Howrah Rajdhani Express arriving on platform.",
+      "urgency": "high",
+      "action_required": "Make passenger announcement + update platform boards",
+      "status": "pending",
+      "timestamp": "2026-06-13 07:15:11.390401",
+      "_id": "6a2d037f16200df95842e240"
+    },
+    {
+      "incident_id": "ef6dc1b2-03d6-40bc-a650-f834d90eb775",
+      "department": "maintenance",
+      "task_description": "Perform routine check on line switches and signaling points at Kanpur Central junction yards.",
+      "urgency": "high",
+      "action_required": "Dispatch repair team immediately",
+      "status": "pending",
+      "timestamp": "2026-06-13 07:16:45.889724",
+      "_id": "6a2d03dd450d09fce73973c7"
+    },
+    {
+      "incident_id": "ef6dc1b2-03d6-40bc-a650-f834d90eb775",
+      "department": "operations",
+      "task_description": "Coordinate slot re-allocation with control room. Permit express overtake if possible.",
+      "urgency": "medium",
+      "action_required": "Execute rerouting plan",
+      "status": "pending",
+      "timestamp": "2026-06-13 07:16:45.889724",
+      "_id": "6a2d03dd450d09fce73973c8"
+    },
+    {
+      "incident_id": "ef6dc1b2-03d6-40bc-a650-f834d90eb775",
+      "department": "station_manager",
+      "task_description": "Announce delay of 45 minutes for Train 12301 Howrah Rajdhani Express arriving on platform.",
+      "urgency": "high",
+      "action_required": "Make passenger announcement + update platform boards",
+      "status": "pending",
+      "timestamp": "2026-06-13 07:16:45.889724",
+      "_id": "6a2d03dd450d09fce73973c9"
+    },
+    {
+      "incident_id": "3e376f35-8030-4b4a-a86b-8e75a7071110",
+      "department": "maintenance",
+      "task_description": "Perform routine check on line switches and signaling points at Kanpur Central junction yards.",
+      "urgency": "high",
+      "action_required": "Dispatch repair team immediately",
+      "status": "pending",
+      "timestamp": "2026-06-13 07:44:57.501776",
+      "_id": "6a2d0a7976baa29e4bb8c011"
+    },
+    {
+      "incident_id": "3e376f35-8030-4b4a-a86b-8e75a7071110",
+      "department": "operations",
+      "task_description": "Coordinate slot re-allocation with control room. Permit express overtake if possible.",
+      "urgency": "medium",
+      "action_required": "Execute rerouting plan",
+      "status": "pending",
+      "timestamp": "2026-06-13 07:44:57.501776",
+      "_id": "6a2d0a7976baa29e4bb8c012"
+    },
+    {
+      "incident_id": "3e376f35-8030-4b4a-a86b-8e75a7071110",
+      "department": "station_manager",
+      "task_description": "Announce delay of 45 minutes for Train 12301 Howrah Rajdhani Express arriving on platform.",
+      "urgency": "high",
+      "action_required": "Make passenger announcement + update platform boards",
+      "status": "pending",
+      "timestamp": "2026-06-13 07:44:57.501776",
+      "_id": "6a2d0a7976baa29e4bb8c013"
+    },
+    {
+      "incident_id": "3a95a4f9-e99c-43a8-ad17-a8ffa9554dcb",
+      "department": "maintenance",
+      "task_description": "Deploy signal maintenance technicians to Varanasi junction signal tower. Manually override relay points and inspect electronic interlock card (EIL-4).",
+      "urgency": "critical",
+      "action_required": "Dispatch repair team immediately",
+      "status": "pending",
+      "timestamp": "2026-06-13 07:45:46.553541"
+    },
+    {
+      "incident_id": "3a95a4f9-e99c-43a8-ad17-a8ffa9554dcb",
+      "department": "operations",
+      "task_description": "Halt consecutive services. Recalculate route for 12259 via bypass detour rail corridor to avoid Varanasi platform lines.",
+      "urgency": "high",
+      "action_required": "Execute rerouting plan",
+      "status": "pending",
+      "timestamp": "2026-06-13 07:45:46.553541"
+    },
+    {
+      "incident_id": "3a95a4f9-e99c-43a8-ad17-a8ffa9554dcb",
+      "department": "station_manager",
+      "task_description": "Broadcast on PA system: Train 12259 Sealdah Duronto Express is delayed at Varanasi due to technical signal faults. Platform boards updated.",
+      "urgency": "high",
+      "action_required": "Make passenger announcement + update platform boards",
+      "status": "pending",
+      "timestamp": "2026-06-13 07:45:46.553541"
+    },
+    {
+      "incident_id": "8340951f-4b41-40fa-9333-4eb581dd6f92",
+      "department": "maintenance",
+      "task_description": "Perform routine check on line switches and signaling points at Kanpur Central junction yards.",
+      "urgency": "high",
+      "action_required": "Dispatch repair team immediately",
+      "status": "pending",
+      "timestamp": "2026-06-13 07:45:46.553541"
+    },
+    {
+      "incident_id": "8340951f-4b41-40fa-9333-4eb581dd6f92",
+      "department": "operations",
+      "task_description": "Coordinate slot re-allocation with control room. Permit express overtake if possible.",
+      "urgency": "medium",
+      "action_required": "Execute rerouting plan",
+      "status": "pending",
+      "timestamp": "2026-06-13 07:45:46.553541"
+    },
+    {
+      "incident_id": "8340951f-4b41-40fa-9333-4eb581dd6f92",
+      "department": "station_manager",
+      "task_description": "Announce delay of 75 minutes for Train 12301 Howrah Rajdhani Express arriving on platform.",
+      "urgency": "high",
+      "action_required": "Make passenger announcement + update platform boards",
+      "status": "pending",
+      "timestamp": "2026-06-13 07:45:46.553541"
+    },
+    {
+      "incident_id": "b0160132-a627-427f-af24-368232a695ef",
+      "department": "maintenance",
+      "task_description": "Perform routine check on line switches and signaling points at Kanpur Central junction yards.",
+      "urgency": "high",
+      "action_required": "Dispatch repair team immediately",
+      "status": "pending",
+      "timestamp": "2026-06-14 10:24:06.833541"
+    },
+    {
+      "incident_id": "b0160132-a627-427f-af24-368232a695ef",
+      "department": "operations",
+      "task_description": "Coordinate slot re-allocation with control room. Permit express overtake if possible.",
+      "urgency": "medium",
+      "action_required": "Execute rerouting plan",
+      "status": "pending",
+      "timestamp": "2026-06-14 10:24:06.833541"
+    },
+    {
+      "incident_id": "b0160132-a627-427f-af24-368232a695ef",
+      "department": "station_manager",
+      "task_description": "Announce delay of 43 minutes for Train 12301 Howrah Rajdhani Express arriving on platform.",
+      "urgency": "high",
+      "action_required": "Make passenger announcement + update platform boards",
+      "status": "pending",
+      "timestamp": "2026-06-14 10:24:06.833541"
+    },
+    {
+      "incident_id": "639d6e0a-619f-4de7-84bb-30c985e11c65",
+      "department": "maintenance",
+      "task_description": "Perform routine check on line switches and signaling points at Kanpur Central junction yards.",
+      "urgency": "high",
+      "action_required": "Dispatch repair team immediately",
+      "status": "pending",
+      "timestamp": "2026-06-14 10:28:27.039186"
+    },
+    {
+      "incident_id": "639d6e0a-619f-4de7-84bb-30c985e11c65",
+      "department": "operations",
+      "task_description": "Coordinate slot re-allocation with control room. Permit express overtake if possible.",
+      "urgency": "medium",
+      "action_required": "Execute rerouting plan",
+      "status": "pending",
+      "timestamp": "2026-06-14 10:28:27.039186"
+    },
+    {
+      "incident_id": "639d6e0a-619f-4de7-84bb-30c985e11c65",
+      "department": "station_manager",
+      "task_description": "Announce delay of 47 minutes for Train 12301 Howrah Rajdhani Express arriving on platform.",
+      "urgency": "high",
+      "action_required": "Make passenger announcement + update platform boards",
+      "status": "pending",
+      "timestamp": "2026-06-14 10:28:27.039186"
+    },
+    {
+      "incident_id": "29394f01-8e6b-43d4-8556-4ee5c26a5293",
+      "department": "maintenance",
+      "task_description": "Perform routine check on line switches and signaling points at Kanpur Central junction yards.",
+      "urgency": "high",
+      "action_required": "Dispatch repair team immediately",
+      "status": "pending",
+      "timestamp": "2026-06-14 10:30:14.255564"
+    },
+    {
+      "incident_id": "29394f01-8e6b-43d4-8556-4ee5c26a5293",
+      "department": "operations",
+      "task_description": "Coordinate slot re-allocation with control room. Permit express overtake if possible.",
+      "urgency": "medium",
+      "action_required": "Execute rerouting plan",
+      "status": "pending",
+      "timestamp": "2026-06-14 10:30:14.255564"
+    },
+    {
+      "incident_id": "29394f01-8e6b-43d4-8556-4ee5c26a5293",
+      "department": "station_manager",
+      "task_description": "Announce delay of 46 minutes for Train 12301 Howrah Rajdhani Express arriving on platform.",
+      "urgency": "high",
+      "action_required": "Make passenger announcement + update platform boards",
+      "status": "pending",
+      "timestamp": "2026-06-14 10:30:14.255564"
+    },
+    {
+      "incident_id": "694424bc-2c88-4320-8521-a2bc64adbe36",
+      "department": "operations",
+      "task_description": "Operational check on Train 12301.",
+      "urgency": "medium",
+      "action_required": "Emergency dispatch action",
+      "status": "pending",
+      "timestamp": "2026-06-14 10:40:46.270567"
+    },
+    {
+      "incident_id": "d9aa7bea-fa70-4aa5-8a51-84c2af51e1c2",
+      "department": "operations",
+      "task_description": "Operational check on Train 12301.",
+      "urgency": "medium",
+      "action_required": "Emergency dispatch action",
+      "status": "pending",
+      "timestamp": "2026-06-14 10:40:50.945398"
+    },
+    {
+      "incident_id": "09304127-ac6e-4980-82e9-7599d8128f91",
+      "department": "operations",
+      "task_description": "Operational check on Train 12301.",
+      "urgency": "medium",
+      "action_required": "Emergency dispatch action",
+      "status": "pending",
+      "timestamp": "2026-06-14 10:46:56.727297"
+    },
+    {
+      "incident_id": "d5e4bc2d-bd2a-410c-b102-143d8386eff1",
+      "department": "maintenance",
+      "task_description": "Platform inspection CNB",
+      "urgency": "critical",
+      "action_required": "Emergency dispatch action",
+      "status": "pending",
+      "timestamp": "2026-06-14 10:51:14.173627"
+    },
+    {
+      "incident_id": "ea582f54-b6f5-47a7-a9ac-491215346e75",
+      "department": "maintenance",
+      "task_description": "Platform inspection CNB",
+      "urgency": "critical",
+      "action_required": "Emergency dispatch action",
+      "status": "pending",
+      "timestamp": "2026-06-14 10:51:19.049681"
+    },
+    {
+      "incident_id": "f9ff79e0-d4a9-42e6-9434-b394a6eb86e0",
+      "department": "maintenance",
+      "task_description": "Platform inspection CNB",
+      "urgency": "critical",
+      "action_required": "Emergency dispatch action",
+      "status": "pending",
+      "timestamp": "2026-06-14 10:52:18.852312"
+    },
+    {
+      "incident_id": "9cada5bd-9e89-4eb4-9d20-1d2629b27302",
+      "department": "maintenance",
+      "task_description": "Platform inspection CNB",
+      "urgency": "critical",
+      "action_required": "Emergency dispatch action",
+      "status": "pending",
+      "timestamp": "2026-06-14 10:52:23.703370"
+    },
+    {
+      "incident_id": "cb0e91bd-ea51-4f1b-a6c1-a285b4391d19",
+      "department": "maintenance",
+      "task_description": "Platform inspection CNB",
+      "urgency": "critical",
+      "action_required": "Emergency dispatch action",
+      "status": "pending",
+      "timestamp": "2026-06-14 10:57:52.342262"
+    },
+    {
+      "incident_id": "1c2ad338-5179-4347-8469-d4bbb579eabf",
+      "department": "maintenance",
+      "task_description": "Platform inspection CNB",
+      "urgency": "critical",
+      "action_required": "Emergency dispatch action",
+      "status": "pending",
+      "timestamp": "2026-06-14 11:00:25.787616"
+    }
+  ],
+  "agent_memory": []
+}

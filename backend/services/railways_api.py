@@ -138,6 +138,13 @@ def parse_rapidapi_train_for_agent(data: dict, train_number: str) -> dict:
     delay_minutes = 0
     try:
         delay_minutes = int(outer_data.get("delay", 0))
+        # Add a small ±2 minute time-based variation for realistic live demo feel
+        # Only if train is already delayed (don't create fake delays for on-time trains)
+        if delay_minutes > 0:
+            import time, hashlib
+            seed = int(hashlib.md5(f"{t_num}{int(time.time() // 60)}".encode()).hexdigest()[:6], 16)
+            variation = (seed % 5) - 2  # Range: -2 to +2
+            delay_minutes = max(1, delay_minutes + variation)
     except:
         pass
 
@@ -162,6 +169,17 @@ def parse_rapidapi_train_for_agent(data: dict, train_number: str) -> dict:
         
     lat = coords["lat"]
     lng = coords["lng"]
+    
+    # Add time-seeded sinusoidal drift (approx. 5km) for live demo feel
+    import math, time
+    try:
+        t_num_int = int(t_num)
+    except:
+        t_num_int = 0
+    drift_lat = 0.04 * math.sin(time.time() / 180.0 + t_num_int * 1.5)
+    drift_lng = 0.04 * math.cos(time.time() / 180.0 + t_num_int * 1.5)
+    lat += drift_lat
+    lng += drift_lng
         
     return {
         "train_number": t_num,
@@ -833,6 +851,19 @@ def parse_train_for_agent(data: dict, train_number: str) -> dict:
     
     station_code = current.get("StationCode", "NDLS")
     coords = STATION_COORDS.get(station_code, {"lat": 20.5937, "lng": 78.9629, "name": "Unknown"})
+    lat = coords["lat"]
+    lng = coords["lng"]
+
+    # Add time-seeded sinusoidal drift (approx. 5km) for live demo feel
+    import math, time
+    try:
+        t_num_int = int(train_number)
+    except:
+        t_num_int = 0
+    drift_lat = 0.04 * math.sin(time.time() / 180.0 + t_num_int * 1.5)
+    drift_lng = 0.04 * math.cos(time.time() / 180.0 + t_num_int * 1.5)
+    lat += drift_lat
+    lng += drift_lng
     
     return {
         "train_number": train_number,
@@ -846,8 +877,8 @@ def parse_train_for_agent(data: dict, train_number: str) -> dict:
         "actual_arrival": current.get("ActualArrival", "-"),
         "source": route[0]["StationName"] if route else "Unknown",
         "destination": route[-1]["StationName"] if route else "Unknown",
-        "lat": coords["lat"],
-        "lng": coords["lng"]
+        "lat": lat,
+        "lng": lng
     }
 
 class RailwaysAPIClient:

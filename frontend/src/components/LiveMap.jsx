@@ -1,92 +1,358 @@
 /* eslint-disable */
 import React from 'react';
-import { MapContainer, TileLayer, Marker, Popup, ZoomControl } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, ZoomControl, Polyline, Tooltip } from 'react-leaflet';
 import L from 'leaflet';
 
-// Lookup dictionary for Indian Railway Station coordinates
+// Complete Indian Railway Station coordinates matching railways_api.py
 const STATION_COORDS = {
-  "NDLS": [28.6143, 77.2147],
-  "MMCT": [18.9696, 72.8193],
-  "HWH": [22.5833, 88.3386],
-  "MAS": [13.0827, 80.2707],
-  "RKMP": [23.2033, 77.4589],
-  "AGC": [27.1587, 77.9908],
-  "GWL": [26.2124, 78.1772],
-  "VGLJ": [25.4484, 78.5685],
-  "TVC": [8.4817, 76.9515],
+  // North India
+  "NDLS": [28.6419, 77.2194],
+  "DLI": [28.6562, 77.2410],
+  "CNB": [26.4499, 80.3319],
+  "LKO": [26.8467, 80.9462],
+  "ALD": [25.4358, 81.8463],
+  "BSB": [25.3176, 82.9739],
+  "GKP": [26.7606, 83.3732],
+  "AGC": [27.1767, 78.0081],
   "MTJ": [27.4924, 77.6737],
-  "MSB": [13.0906, 80.2831],
-  "BDTS": [19.0644, 72.8358],
+  "ALJN": [27.8974, 78.0880],
+  "MB": [28.9845, 77.7064],
+  "SRE": [29.9691, 77.5469],
+  "AMB": [30.3782, 76.7767],
+  "ASR": [31.6340, 74.8723],
+  "LDH": [30.9010, 75.8573],
+  "UMB": [30.9167, 76.9500],
+  "HW": [29.9457, 78.1642],
+  "DDN": [30.3165, 78.0322],
+
+  // Bihar & Jharkhand
+  "PNBE": [25.6093, 85.1235],
+  "RJPB": [25.6093, 85.1390],
+  "BGP": [25.2425, 86.9842],
+  "MFP": [26.1197, 85.3910],
+  "DBG": [26.1522, 85.8970],
+  "SPJ": [25.8645, 85.7810],
+  "DHN": [23.7957, 86.4304],
+  "JSME": [24.1540, 86.2028],
+  "RNC": [23.3441, 85.3096],
+
+  // West Bengal
+  "HWH": [22.5958, 88.2636],
+  "SDAH": [22.5697, 88.3697],
+  "KOAA": [22.5726, 88.3639],
+  "BDC": [22.8456, 88.3632],
+  "BWN": [23.2324, 87.8615],
+  "KGP": [22.3460, 87.3195],
+
+  // Maharashtra
+  "CSTM": [18.9398, 72.8355],
+  "BCT": [18.9690, 72.8205],
+  "LTT": [19.0668, 72.9244],
+  "PUNE": [18.5286, 73.8742],
+  "NGP": [21.1458, 79.0882],
+  "AWB": [19.8762, 75.3433],
+  "NED": [19.1566, 77.3212],
+  "SUR": [17.6868, 75.9064],
+
+  // Karnataka
+  "SBC": [12.9784, 77.5736],
+  "YPR": [13.0148, 77.5510],
+  "UBL": [15.3647, 75.1240],
+  "MYS": [12.2958, 76.6394],
+
+  // Tamil Nadu
+  "MAS": [13.0827, 80.2707],
+  "MS": [13.0012, 80.2565],
+  "TPJ": [10.7905, 78.7047],
+  "MDU": [9.9252, 78.1198],
+  "CBE": [11.0168, 76.9558],
+  "NCJ": [8.7139, 77.7567],
+
+  // Kerala
+  "TVC": [8.4855, 76.9492],
+  "ERS": [9.9816, 76.2999],
+  "CLT": [11.2588, 75.7804],
+  "SRR": [10.9598, 75.9495],
+
+  // Andhra Pradesh & Telangana
+  "SC": [17.4339, 78.5000],
+  "HYB": [17.3850, 78.4867],
+  "BZA": [16.5193, 80.6305],
+  "VSKP": [17.7231, 83.2985],
+  "GNT": [16.3067, 80.4365],
+
+  // Gujarat
   "ADI": [23.0225, 72.5714],
-  "PNBE": [25.6022, 85.1376],
-  "SBC": [12.9779, 77.5696]
+  "BRC": [22.3144, 73.1932],
+  "ST": [21.1702, 72.8311],
+  "RJT": [22.3039, 70.8022],
+
+  // Madhya Pradesh
+  "BPL": [23.2599, 77.4126],
+  "JBP": [23.1815, 79.9864],
+  "GWL": [26.2183, 78.1828],
+  "INDB": [22.7196, 75.8577],
+  "ET": [23.6611, 77.7631],
+
+  // Rajasthan
+  "JP": [26.9124, 75.7873],
+  "AII": [26.4499, 74.6399],
+  "JU": [26.2389, 73.0243],
+  "BKN": [28.0229, 73.3119],
+  "UDZ": [24.5713, 73.6915],
+
+  // Odisha
+  "BBS": [20.2961, 85.8189],
+  "CTC": [20.4625, 85.8830],
+  "PURI": [19.8135, 85.8312],
+
+  // Assam & Northeast
+  "GHY": [26.1445, 91.7362],
+  "DBRG": [27.4728, 95.0152]
 };
 
-// Center of India map view
+// Major Indian Rail Network Routes
+const RAIL_NETWORKS = [
+  ["NDLS", "ALJN", "CNB", "ALD", "BSB", "PNBE", "JSME", "DHN", "BWN", "HWH"],
+  ["NDLS", "MTJ", "AGC", "GWL", "VGLJ", "BPL", "NGP", "BZA", "MAS"],
+  ["BCT", "BRC", "ST", "ADI"],
+  ["BCT", "PUNE", "SUR", "UBL", "SBC"],
+  ["MAS", "MS", "SBC", "YPR"],
+  ["HWH", "KGP", "CTC", "BBS", "VSKP", "BZA", "MAS"],
+  ["ASR", "LDH", "UMB", "NDLS"],
+  ["NDLS", "SRE", "HW", "DDN"]
+];
+
 const MAP_CENTER = [21.7679, 78.8718]; 
 
-// Create custom icons representing train status on the map
 const createCustomMarker = (status, delay) => {
-  let color = '#00f0ff'; // nominal (cyan)
+  let color = '#00f0ff'; // cyan
   if (status === 'cancelled' || delay > 60) {
-    color = '#ff3366'; // critical (red)
+    color = '#ff3366'; // red
   } else if (status === 'delayed' || delay > 15) {
-    color = '#ffb300'; // warning (yellow)
+    color = '#ffb300'; // warning yellow
   }
 
   return L.divIcon({
     html: `<div style="
       position: relative;
-      width: 12px;
-      height: 12px;
+      width: 14px;
+      height: 14px;
       background-color: ${color};
-      border: 1px solid #080a0d;
-      box-shadow: 0 0 6px ${color};
+      border: 2px solid #080a0d;
+      box-shadow: 0 0 8px ${color};
       cursor: pointer;
     "></div>`,
     className: 'custom-train-marker-wrapper',
-    iconSize: [12, 12],
-    iconAnchor: [6, 6]
+    iconSize: [14, 14],
+    iconAnchor: [7, 7]
   });
 };
 
-export default function LiveMap({ trains = [] }) {
-  // Setup fallback default trains if data is empty
-  const activeTrains = trains.length > 0 ? trains : [
-    {
-      train_number: "12002",
-      train_name: "Chennai Exp",
-      train_id: "TN-4022",
-      speed: "84 km/h",
-      next_station: "MSB",
-      distance_next: "0.4 KM",
-      current_station: "MAS",
-      delay_minutes: 0,
-      status: "On Time"
-    },
-    {
-      train_number: "12952",
-      train_name: "Mumbai Rajdhani",
-      train_id: "TN-1295",
-      speed: "110 km/h",
-      next_station: "AGC",
-      distance_next: "12 KM",
-      current_station: "NDLS",
-      delay_minutes: 0,
-      status: "On Time"
-    },
-    {
-      train_number: "12260",
-      train_name: "Howrah Duronto",
-      train_id: "TN-1226",
-      speed: "45 km/h",
-      next_station: "HWH",
-      distance_next: "3.2 KM",
-      current_station: "AGC",
-      delay_minutes: 75,
-      status: "Delayed"
+const createWarningIcon = () => {
+  return L.divIcon({
+    html: `<div style="
+      position: relative;
+      width: 24px;
+      height: 24px;
+      background-color: rgba(255, 51, 102, 0.2);
+      border: 2px solid #ff3366;
+      border-radius: 50%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      box-shadow: 0 0 12px #ff3366;
+      animation: pulse-live 1.5s infinite;
+      cursor: pointer;
+    ">
+      <span style="color: #ff3366; font-size: 14px; font-weight: 900; font-family: monospace;">!</span>
+    </div>`,
+    className: 'custom-warning-marker-wrapper',
+    iconSize: [24, 24],
+    iconAnchor: [12, 12]
+  });
+};
+
+function AnimatedMarker({ position, icon, children, ...props }) {
+  const [currentPos, setCurrentPos] = React.useState(position);
+  const prevPosRef = React.useRef(position);
+  const targetPosRef = React.useRef(position);
+  const animationRef = React.useRef(null);
+  const markerRef = React.useRef(null);
+
+  React.useEffect(() => {
+    // If target position changes
+    if (position[0] !== targetPosRef.current[0] || position[1] !== targetPosRef.current[1]) {
+      prevPosRef.current = targetPosRef.current;
+      targetPosRef.current = position;
+      
+      const startTime = performance.now();
+      const duration = 2500; // interpolate smoothly over 2.5 seconds
+
+      const animate = (time) => {
+        const elapsed = time - startTime;
+        const progress = Math.min(elapsed / duration, 1.0);
+        // Easing function (easeOutCubic)
+        const easedProgress = 1 - Math.pow(1 - progress, 3);
+
+        const lat = prevPosRef.current[0] + (targetPosRef.current[0] - prevPosRef.current[0]) * easedProgress;
+        const lng = prevPosRef.current[1] + (targetPosRef.current[1] - prevPosRef.current[1]) * easedProgress;
+        
+        const nextPos = [lat, lng];
+        setCurrentPos(nextPos);
+
+        if (markerRef.current) {
+          markerRef.current.setLatLng(nextPos);
+        }
+
+        if (progress < 1.0) {
+          animationRef.current = requestAnimationFrame(animate);
+        }
+      };
+
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+      }
+      animationRef.current = requestAnimationFrame(animate);
+    } else {
+      // Direct set just in case
+      setCurrentPos(position);
+      if (markerRef.current) {
+        markerRef.current.setLatLng(position);
+      }
     }
-  ];
+  }, [position]);
+
+  React.useEffect(() => {
+    return () => {
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+      }
+    };
+  }, []);
+
+  return (
+    <Marker 
+      ref={(ref) => {
+        markerRef.current = ref;
+      }}
+      position={currentPos} 
+      icon={icon} 
+      {...props}
+    >
+      {children}
+    </Marker>
+  );
+}
+
+export default function LiveMap({ trains = [], incidents = [] }) {
+  const activeTrains = trains.length > 0 ? trains : [];
+
+  // Generate polylines for regular rail network tracks
+  const regularRoutes = RAIL_NETWORKS.map((route, rIdx) => {
+    const coords = route
+      .map(code => STATION_COORDS[code])
+      .filter(coord => coord !== undefined);
+    return (
+      <Polyline 
+        key={`reg-route-${rIdx}`} 
+        positions={coords} 
+        pathOptions={{ color: '#00f0ff', weight: 1.5, opacity: 0.15, dashArray: '4, 4' }} 
+      />
+    );
+  });
+
+  // Calculate and collect active blockages and Dijkstra detours
+  const detourElements = [];
+  const warningMarkers = [];
+
+  incidents.forEach((inc, idx) => {
+    // Check if incident is active/pending and has a train or station associated
+    if (inc.resolution_status !== 'resolved' && inc.train_number) {
+      // Find the associated train coordinates
+      const matchingTrain = activeTrains.find(t => t.train_number === inc.train_number);
+      let stationCode = inc.current_station || (matchingTrain && matchingTrain.current_station) || '';
+      
+      // Standardize station code
+      if (stationCode.includes("Kanpur")) stationCode = "CNB";
+      if (stationCode.includes("Delhi")) stationCode = "NDLS";
+      if (stationCode.includes("Varanasi")) stationCode = "BSB";
+      if (stationCode.includes("Bhopal") || stationCode.includes("RKMP")) stationCode = "BPL";
+      if (stationCode.includes("Mathura")) stationCode = "MTJ";
+      if (stationCode.includes("Allahabad") || stationCode.includes("Prayagraj")) stationCode = "ALD";
+
+      const coords = STATION_COORDS[stationCode];
+      if (coords) {
+        const [lat, lng] = coords;
+
+        // 1. Draw blocked track segment (dashed red crosshair line)
+        detourElements.push(
+          <Polyline
+            key={`block-${inc.id}-${idx}`}
+            positions={[
+              [lat - 0.25, lng - 0.25],
+              [lat + 0.25, lng + 0.25]
+            ]}
+            pathOptions={{ color: '#ff3366', weight: 3.5, opacity: 0.85, dashArray: '5, 5' }}
+          />
+        );
+
+        // 2. Draw Dijkstra Detour bypass route (solid neon green polyline connecting path stations)
+        if (inc.detour_route && inc.detour_route.length >= 2) {
+          const detourPositions = inc.detour_route
+            .map(code => STATION_COORDS[code])
+            .filter(coord => coord !== undefined);
+          if (detourPositions.length >= 2) {
+            detourElements.push(
+              <Polyline
+                key={`detour-${inc.id}-${idx}`}
+                positions={detourPositions}
+                pathOptions={{ color: '#00e676', weight: 4.0, opacity: 0.95, lineJoin: 'round' }}
+              />
+            );
+          }
+        } else if (inc.reroute_plan && (inc.reroute_plan.toLowerCase().includes("detour") || inc.reroute_plan.toLowerCase().includes("bypass"))) {
+          detourElements.push(
+            <Polyline
+              key={`detour-${inc.id}-${idx}`}
+              positions={[
+                [lat - 0.4, lng - 0.3],     // Detour start (West-South)
+                [lat - 0.2, lng + 0.35],    // Detour mid arch (East bypass)
+                [lat + 0.2, lng + 0.35],    // Detour mid arch
+                [lat + 0.4, lng - 0.3]      // Detour rejoin (West-North)
+              ]}
+              pathOptions={{ color: '#00e676', weight: 3.5, opacity: 0.9, lineJoin: 'round' }}
+            />
+          );
+        }
+
+        // 3. Place warning triangle alert icon
+        warningMarkers.push(
+          <Marker 
+            key={`warning-${inc.id}-${idx}`} 
+            position={[lat, lng]} 
+            icon={createWarningIcon()}
+          >
+            <Popup closeButton={false}>
+              <div style={{
+                padding: '10px',
+                backgroundColor: '#0d1117',
+                color: '#ff3366',
+                fontFamily: "'JetBrains Mono', monospace",
+                border: '1px solid #ff3366',
+                fontSize: '11px'
+              }}>
+                <strong>⚠️ ACTIVE BLOCKAGE IN EFFECT</strong>
+                <p style={{ color: '#8a9ba8', fontSize: '10px', margin: '4px 0 0 0' }}>
+                  {inc.title}
+                </p>
+              </div>
+            </Popup>
+          </Marker>
+        );
+      }
+    }
+  });
 
   return (
     <div style={{
@@ -101,25 +367,31 @@ export default function LiveMap({ trains = [] }) {
         zoomControl={false}
         style={{ width: '100%', height: '100%' }}
       >
-        {/* Dark style tile layer */}
         <TileLayer
           url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
           attribution='&copy; <a href="https://carto.com/">CARTO</a>'
         />
         
-        {/* Render zoom controls in bottom-right corner */}
         <ZoomControl position="bottomright" />
 
-        {/* Place train markers */}
+        {/* Regular tracks */}
+        {regularRoutes}
+
+        {/* Active Detours and Blockages */}
+        {detourElements}
+
+        {/* Warning Alert markers */}
+        {warningMarkers}
+
+        {/* Train markers */}
         {activeTrains.map((train, idx) => {
-          // Determine coordinate
           let position;
           if (train.lat !== undefined && train.lng !== undefined) {
             position = [Number(train.lat), Number(train.lng)];
           } else {
             position = STATION_COORDS[train.current_station] || STATION_COORDS["NDLS"];
           }
-          // Offset slightly if markers overlap (only for fallback trains without coordinates)
+
           if (train.lat === undefined || train.lng === undefined) {
             if (idx === 1) position = [position[0] - 0.5, position[1] + 0.8];
             if (idx === 2) position = [position[0] + 0.6, position[1] - 0.4];
@@ -130,11 +402,36 @@ export default function LiveMap({ trains = [] }) {
           const markerIcon = createCustomMarker(train.status?.toLowerCase(), train.delay_minutes);
 
           return (
-            <Marker 
+            <AnimatedMarker 
               key={train.train_number || idx} 
               position={position}
               icon={markerIcon}
             >
+              <Tooltip direction="top" offset={[0, -10]} opacity={0.95} sticky>
+                <div style={{
+                  padding: '6px 10px',
+                  backgroundColor: '#0d1117',
+                  color: '#e2e8f0',
+                  fontFamily: "'JetBrains Mono', monospace",
+                  border: `1px solid ${isDelayed ? '#ffb300' : '#00f0ff'}`,
+                  boxShadow: `0 0 8px ${isDelayed ? 'rgba(255,179,0,0.15)' : 'rgba(0,240,255,0.15)'}`,
+                  fontSize: '10px',
+                  lineHeight: '1.4'
+                }}>
+                  <div style={{ fontWeight: 'bold', color: '#fff', marginBottom: '4px', borderBottom: '1px solid #1a2433', paddingBottom: '2px' }}>
+                    {train.train_name || 'Express Train'} ({train.train_number})
+                  </div>
+                  <div>Speed: <span style={{ color: '#00f0ff' }}>{train.speed || '82 km/h'}</span></div>
+                  <div>Delay: <span style={{ color: isDelayed ? '#ffb300' : '#00e676' }}>
+                    {train.delay_minutes > 0 ? `${train.delay_minutes} mins` : 'On Time'}
+                  </span></div>
+                  <div>Status: <span style={{ textTransform: 'uppercase', color: isDelayed ? '#ff3366' : '#00e676' }}>{train.status || 'Active'}</span></div>
+                  <div style={{ color: '#5c7080', fontSize: '9px', marginTop: '4px' }}>
+                    Last Scanned: Just now
+                  </div>
+                </div>
+              </Tooltip>
+
               <Popup closeButton={false} minWidth={240}>
                 <div style={{
                   padding: '12px',
@@ -144,7 +441,6 @@ export default function LiveMap({ trains = [] }) {
                   borderRadius: '0px',
                   border: '1px solid #1a2433'
                 }}>
-                  {/* Tooltip Header */}
                   <div style={{
                     display: 'flex',
                     justifyContent: 'space-between',
@@ -166,7 +462,6 @@ export default function LiveMap({ trains = [] }) {
                     <span style={{ fontSize: '10px', color: '#5c7080' }}>NO.{train.train_number}</span>
                   </div>
 
-                  {/* Tooltip Body */}
                   <h3 style={{ fontSize: '13px', fontWeight: 600, color: '#fff', marginBottom: '4px' }}>
                     {train.train_name || 'Train Express'}
                   </h3>
@@ -176,7 +471,6 @@ export default function LiveMap({ trains = [] }) {
 
                   <div style={{ height: '1px', backgroundColor: '#1a2433', margin: '8px 0' }}></div>
 
-                  {/* Tooltip Footer */}
                   <div style={{
                     display: 'flex',
                     justifyContent: 'space-between',
@@ -188,7 +482,7 @@ export default function LiveMap({ trains = [] }) {
                   </div>
                 </div>
               </Popup>
-            </Marker>
+            </AnimatedMarker>
           );
         })}
       </MapContainer>

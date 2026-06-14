@@ -48,3 +48,10 @@ class AgentState(TypedDict):
     last_node_executed: str
     messages: Annotated[list, operator.add]
     tools_used: Annotated[List[str], append_to_list]
+    detour_route: List[str]
+    perception: Optional[dict]
+    decision: Optional[dict]
+    incident_history: Optional[List[dict]]
+    prediction: Optional[dict]
+    memory_used: Optional[str]
+

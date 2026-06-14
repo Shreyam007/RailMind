@@ -168,3 +168,52 @@ body {
   height: 8px;
   background-color: var(--accent-color);
 }
+
+@keyframes flash-active {
+  0% {
+    transform: scale(1);
+    background-color: #00e676;
+    box-shadow: 0 0 0px #00e676;
+  }
+  50% {
+    transform: scale(1.6);
+    background-color: #00ff88;
+    box-shadow: 0 0 15px #00ff88;
+  }
+  100% {
+    transform: scale(1);
+    background-color: #00e676;
+    box-shadow: 0 0 0px #00e676;
+  }
+}
+
+.flash-active-trigger {
+  animation: flash-active 0.8s ease-in-out;
+}
+
+/* Agent Brain Column Pulses */
+@keyframes pulse-cyan {
+  0% { border-color: #1a2433; box-shadow: none; background-color: #121820; }
+  50% { border-color: #00f0ff; box-shadow: 0 0 12px rgba(0, 240, 255, 0.25); background-color: rgba(0, 240, 255, 0.05); }
+  100% { border-color: #1a2433; box-shadow: none; background-color: #121820; }
+}
+@keyframes pulse-yellow {
+  0% { border-color: #1a2433; box-shadow: none; background-color: #121820; }
+  50% { border-color: #ffb300; box-shadow: 0 0 12px rgba(255, 179, 0, 0.25); background-color: rgba(255, 179, 0, 0.05); }
+  100% { border-color: #1a2433; box-shadow: none; background-color: #121820; }
+}
+@keyframes pulse-green {
+  0% { border-color: #1a2433; box-shadow: none; background-color: #121820; }
+  50% { border-color: #00e676; box-shadow: 0 0 12px rgba(0, 230, 118, 0.25); background-color: rgba(0, 230, 118, 0.05); }
+  100% { border-color: #1a2433; box-shadow: none; background-color: #121820; }
+}
+.pulse-perceive {
+  animation: pulse-cyan 1.5s infinite ease-in-out;
+}
+.pulse-decide {
+  animation: pulse-yellow 1.5s infinite ease-in-out;
+}
+.pulse-act {
+  animation: pulse-green 1.5s infinite ease-in-out;
+}
+

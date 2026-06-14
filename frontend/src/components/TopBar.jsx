@@ -1,12 +1,11 @@
 /* eslint-disable */
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Bell, Settings } from 'lucide-react';
 
-export default function TopBar({ loopCount = 0, incidentCount = 0, wsStatus = 'connected', onNotificationsClick, onSettingsClick, onProfileClick, activeTab = 'Dashboard', onTabChange }) {
+export default function TopBar({ loopCount = 0, incidentCount = 0, wsStatus = 'connected', onNotificationsClick, onSettingsClick, onProfileClick, activeTab = 'Dashboard', onTabChange, liveFlash = false, cycleCountdown = 30 }) {
   const tabs = ['Rail Network', 'Sensor Data', 'Timetable', 'Fleet'];
   // Keep tab mapping aligned with App.jsx
   const activeTopTab = ['Sensor Data', 'Timetable', 'Fleet'].includes(activeTab) ? activeTab : 'Rail Network';
-
   const isConnected = wsStatus === 'connected';
 
   return (
@@ -105,7 +104,7 @@ export default function TopBar({ loopCount = 0, incidentCount = 0, wsStatus = 'c
           {/* LIVE/OFFLINE status */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span 
-              className={isConnected ? "pulse-dot-cyan" : ""} 
+              className={`${isConnected ? "pulse-dot-cyan" : ""} ${liveFlash ? "flash-active-trigger" : ""}`} 
               style={{
                 display: 'inline-block',
                 width: '6px',
@@ -138,6 +137,19 @@ export default function TopBar({ loopCount = 0, incidentCount = 0, wsStatus = 'c
           <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
             <span className="palantir-mono" style={{ fontSize: '10px', fontWeight: 600, color: '#5c7080', letterSpacing: '0.5px' }}>Alerts:</span>
             <span className="palantir-mono" style={{ fontSize: '13px', fontWeight: 700, color: '#ff3366' }}>[{incidentCount < 10 ? '0' + incidentCount : incidentCount}]</span>
+          </div>
+
+          <div style={{ width: '1px', height: '14px', backgroundColor: '#1a2433' }}></div>
+
+          {/* Next agent cycle countdown */}
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
+            <span className="palantir-mono" style={{ fontSize: '10px', fontWeight: 600, color: '#5c7080', letterSpacing: '0.5px' }}>NEXT CYCLE:</span>
+            <span className="palantir-mono" style={{ 
+              fontSize: '13px', 
+              fontWeight: 700, 
+              color: cycleCountdown <= 5 ? '#ff3366' : '#ffb300',
+              transition: 'color 0.3s'
+            }}>{cycleCountdown}s</span>
           </div>
         </div>
 
